@@ -8,7 +8,7 @@ const JwtStrategy = passportJWT.Strategy;
 const ExtractJwt = passportJWT.ExtractJwt;
 const parser = require('body-parser');
 const knex = require('knex');
-const knexDb = knex({client: 'pg', connection: 'postgres://localhost/jwt_test'});
+const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
 const bookshelf = require('bookshelf');
 const securePassword = require('bookshelf-secure-password');
 const db = bookshelf(knexDb);
@@ -25,10 +25,13 @@ const ERROR_MAPPING = {
 };
 
 const User = db.Model.extend({
-  tableName: 'login_user',
+  tableName: 'users',
   hasSecurePassword: true
 });
-
+const Role = db.Model.extend({
+  tableName: 'roles',
+  hasSecurePassword: true
+});
 
 const opts = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -86,8 +89,18 @@ app.post('/login', (req, res) => {
   });
 });
 
-app.get('/protected', passport.authenticate('jwt', {session: false}), (req, res) => {
-  res.send('i\'m protected');
+app.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => {
+  Role.forge({id: req.user.attributes.role_id}).fetch().then(result => {
+    if(result.attributes.role === 'user') {
+      return res.status(403).send('FORBIDDEN');
+    }
+    User.forge().fetchAll().then(result => {
+      if(!result) {
+        return res.status(404).send('Not Found');
+      }
+      return res.status(200).send(result)
+    });
+  });
 });
 const PORT = 3000;
 app.listen(PORT);

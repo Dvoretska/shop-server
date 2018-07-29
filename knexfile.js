@@ -4,6 +4,6 @@ module.exports = {
 
   development: {
     client: 'pg',
-    connection: 'postgres://localhost/jwt_test'
+    connection: 'postgres://localhost/project_db'
   }
 };
