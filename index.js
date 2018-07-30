@@ -105,16 +105,18 @@ app.post('/login', (req, res) => {
 });
 
 app.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => {
-
-  Role.forge({id: req.user.attributes.role_id}).fetch().then(result => {
-    if(result.attributes.role === 'user') {
-      return res.status(403).send('FORBIDDEN');
+  Role.forge().fetchAll().then(roles => {
+    const role = roles.filter((item) => {
+      return item.id == req.user.attributes.role_id
+    });
+    if(role[0].attributes.role == 'user' ) {
+      return res.status(403).send('You have no rights for this action.');
     }
-    User.forge().fetchAll({withRelated: ['role_id']}).then(result => {
-      if(!result) {
+    User.forge().fetchAll({withRelated: ['role_id']}).then(users => {
+      if(!users) {
         return res.status(404).send('Not Found');
       }
-      return res.status(200).send(result)
+      return res.status(200).send({results: users, meta: roles})
     });
   });
 });
