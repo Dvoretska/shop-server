@@ -15,9 +15,22 @@ const db = bookshelf(knexDb);
 db.plugin(securePassword);
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const multer = require('multer');
+const busboy = require('connect-busboy');
 
 db.plugin(securePassword);
 
+const DIR = './uploads';
+
+let storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, './public/images');
+    },
+    filename: (req, file, cb) => {
+      cb(null, file.fieldname + '-' + Date.now());
+    }
+});
+let upload = multer({storage: storage}).single('file');
 
 const ERROR_MAPPING = {
   '23505': {email: 'Email already exists'},
@@ -57,10 +70,9 @@ app.use(parser.urlencoded({
   extended: false
 }));
 app.use(parser.json());
+app.use(busboy());
+app.use(upload);
 
-app.get('/', (req, res) => {
-  res.send('Hello world');
-});
 app.post('/register', (req, res) => {
   if(req.body.password.length < 7) {
     return res.status(400).send({password: 'Password length should me more than 6 characters'})
@@ -120,5 +132,30 @@ app.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => 
     });
   });
 });
+
+app.post('/profile', passport.authenticate('jwt', {session: false}), function(req, res) {
+  // console.log(req.user);
+  upload(req, res, (err) => {
+    if (err) {
+      console.log(err);
+      return res.send({
+        success: false
+      });
+    } else {
+      console.log(req.files);
+      return res.send({
+        success: req.body
+      })
+    }
+  // User.forge({email: req.body.email}).fetch({withRelated: ['role_id']}).then(result => {
+  //   // model.set('example1', info.example1);
+  //   // return model.save();
+  //   if(!result) {
+  //     return res.status(400).send(ERROR_MAPPING['login_error']);
+  //   }
+  // });
+  });
+});
+
 const PORT = 3000;
 app.listen(PORT);
