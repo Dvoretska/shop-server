@@ -33,15 +33,13 @@ let storage = multer.diskStorage({
 });
 
 let upload = multer({storage: storage, fileFilter: function(req, file, callback) {
-  if(!file) {
-     callback(null, false, 'Error')
-  }
   let ext = path.extname(file.originalname);
   if (ext !== '.png' && ext !== '.jpg' && ext !== '.gif' && ext !== '.jpeg') {
     req.fileValidationError = 'Only images are allowed';
     return callback(null, false, req.fileValidationError)
   }
-  callback(null, true)}
+  callback(null, true)
+  }
 }).single('file');
 
 const ERROR_MAPPING = {
@@ -102,7 +100,7 @@ app.post('/register', (req, res) => {
       return res.status(201).send({
         email: user.attributes.email,
         token: token,
-        // image: result.attributes.image,
+        image: result.attributes.image,
         role: role.attributes.role
       });
     }).catch(err => {
@@ -122,7 +120,7 @@ app.post('/login', (req, res) => {
       res.send({
         token,
         user: result.attributes.email,
-        // image: result.attributes.image,
+        image: result.attributes.image,
         role: result.relations.role_id.attributes.role
       });
     }).catch(err => {
@@ -149,23 +147,19 @@ app.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => 
 });
 
 app.post('/profile', passport.authenticate('jwt', {session: false}), function(req, res) {
+  if (req.fileValidationError) {
+    return res.status(400).send(req.fileValidationError);
+  }
   if(req.file) {
     User.forge({id: req.user.attributes.id}).fetch().then(function (model) {
-      if(model.get('image')) {
-        fs.unlink(`public/${model.get('image')}`, (err) => {
-          if (err) throw err;
-        });
-      }
       upload(req, res, (err) => {
         if (err) {
           return res.send({success: false});
         } else {
-          if (req.fileValidationError) {
-            return res.status(400).send(req.fileValidationError);
-          } else {
+          if(model.get('image')) {
+            fs.unlink(`public/${model.get('image')}`, () => {});
             User.where({email: req.user.attributes.email})
               .save({image: req.file.filename}, {patch: true});
-            return res.status(200).send({image: req.file.filename})
           }
         }
       })
@@ -175,9 +169,10 @@ app.post('/profile', passport.authenticate('jwt', {session: false}), function(re
      bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
         User.where({email: req.user.attributes.email})
           .save({password_digest: hash}, {patch: true});
-        return res.status(200).send({})
      });
   }
+  const imageResponse = req.file ? {image: req.file.filename} : {success: 'ok'};
+  return res.status(200).send(imageResponse)
 });
 
 const PORT =  process.env.PORT || 3000;
