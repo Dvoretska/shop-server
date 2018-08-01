@@ -20,11 +20,9 @@ const busboy = require('connect-busboy');
 
 db.plugin(securePassword);
 
-const DIR = './uploads';
-
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      cb(null, './public/images');
+      cb(null, './public');
     },
     filename: (req, file, cb) => {
       cb(null, file.fieldname + '-' + Date.now());
@@ -72,6 +70,7 @@ app.use(parser.urlencoded({
 app.use(parser.json());
 app.use(busboy());
 app.use(upload);
+app.use(express.static('public'))
 
 app.post('/register', (req, res) => {
   if(req.body.password.length < 7) {
@@ -108,6 +107,7 @@ app.post('/login', (req, res) => {
       res.send({
         token,
         user: result.attributes.email,
+        image: result.attributes.image,
         role: result.relations.role_id.attributes.role
       });
     }).catch(err => {
@@ -134,26 +134,15 @@ app.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => 
 });
 
 app.post('/profile', passport.authenticate('jwt', {session: false}), function(req, res) {
-  // console.log(req.user);
+  const newPassword = req.body.newPassword;
   upload(req, res, (err) => {
     if (err) {
-      console.log(err);
-      return res.send({
-        success: false
-      });
+      return res.send({success: false});
     } else {
-      console.log(req.files);
-      return res.send({
-        success: req.body
-      })
+      User.where({email: req.user.attributes.email})
+      .save({image: req.file.filename, password_digest: newPassword}, {patch: true});
+      return res.status(200).send({image: req.file.filename})
     }
-  // User.forge({email: req.body.email}).fetch({withRelated: ['role_id']}).then(result => {
-  //   // model.set('example1', info.example1);
-  //   // return model.save();
-  //   if(!result) {
-  //     return res.status(400).send(ERROR_MAPPING['login_error']);
-  //   }
-  // });
   });
 });
 
