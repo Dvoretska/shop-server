@@ -100,7 +100,6 @@ app.post('/register', (req, res) => {
       return res.status(201).send({
         email: user.attributes.email,
         token: token,
-        image: result.attributes.image,
         role: role.attributes.role
       });
     }).catch(err => {
@@ -119,7 +118,7 @@ app.post('/login', (req, res) => {
       const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
       res.send({
         token,
-        user: result.attributes.email,
+        email: result.attributes.email,
         image: result.attributes.image,
         role: result.relations.role_id.attributes.role
       });
@@ -156,16 +155,17 @@ app.post('/profile', passport.authenticate('jwt', {session: false}), function(re
         if (err) {
           return res.send({success: false});
         } else {
-          if(model.get('image')) {
-            fs.unlink(`public/${model.get('image')}`, () => {});
-            User.where({email: req.user.attributes.email})
-              .save({image: req.file.filename}, {patch: true});
-          }
+          fs.unlink(`public/${model.get('image')}`, () => {});
+          User.where({email: req.user.attributes.email})
+            .save({image: req.file.filename}, {patch: true});
         }
       })
     })
   }
   if(req.body.newPassword) {
+     if(req.body.newPassword.length < 7) {
+       return res.status(400).send({password: 'Password length should me more than 6 characters'})
+     }
      bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
         User.where({email: req.user.attributes.email})
           .save({password_digest: hash}, {patch: true});
@@ -174,6 +174,8 @@ app.post('/profile', passport.authenticate('jwt', {session: false}), function(re
   const imageResponse = req.file ? {image: req.file.filename} : {success: 'ok'};
   return res.status(200).send(imageResponse)
 });
+
+
 
 const PORT =  process.env.PORT || 3000;
 app.listen(PORT);
