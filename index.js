@@ -145,37 +145,102 @@ app.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => 
   });
 });
 
-app.post('/profile', passport.authenticate('jwt', {session: false}), function(req, res) {
-  if (req.fileValidationError) {
-    return res.status(400).send(req.fileValidationError);
-  }
-  if(req.file) {
-    User.forge({id: req.user.attributes.id}).fetch().then(function (model) {
-      upload(req, res, (err) => {
-        if (err) {
-          return res.send({success: false});
-        } else {
-          fs.unlink(`public/${model.get('image')}`, () => {});
-          User.where({email: req.user.attributes.email})
-            .save({image: req.file.filename}, {patch: true});
+app.post('/update', passport.authenticate('jwt', {session: false}), function(req, res) {
+  Role.forge().fetchAll().then(roles => {
+    const userEmail = req.body.email;
+    User.forge({email: userEmail}).fetch().then(function (user) {
+      const requestRole = roles.filter((role) => {
+        return role.id == req.user.attributes.role_id
+      })[0].attributes.role;
+      const userRole = roles.filter((role) => {
+        return role.id == user.attributes.role_id
+      })[0].attributes.role;
+      if (requestRole == 'user' || (requestRole == 'premium' && userRole != 'user')) {
+        return res.status(403).send('You have no rights for this action.');
+      }
+      if (req.fileValidationError) {
+        return res.status(400).send(req.fileValidationError);
+      }
+      if (req.file) {
+        upload(req, res, (err) => {
+          if (err) {
+            return res.send({success: false});
+          } else {
+            fs.unlink(`public/${user.get('image')}`, () => {
+            });
+            User.where({email: userEmail})
+              .save({image: req.file.filename}, {patch: true});
+          }
+        })
+      }
+      if (req.body.newPassword) {
+        if (req.body.newPassword.length < 7) {
+          return res.status(400).send({password: 'Password length should me more than 6 characters'})
         }
-      })
-    })
-  }
-  if(req.body.newPassword) {
-     if(req.body.newPassword.length < 7) {
-       return res.status(400).send({password: 'Password length should me more than 6 characters'})
-     }
-     bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
-        User.where({email: req.user.attributes.email})
-          .save({password_digest: hash}, {patch: true});
-     });
-  }
-  const imageResponse = req.file ? {image: req.file.filename} : {success: 'ok'};
-  return res.status(200).send(imageResponse)
+        bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
+          User.where({email: userEmail})
+            .save({password_digest: hash}, {patch: true});
+        });
+      }
+      if (req.body.selectedRole) {
+        Role.forge({role: req.body.selectedRole}).fetch().then((role) => {
+          User.where({email: userEmail})
+            .save({role_id: role.id}, {patch: true});
+        })
+      }
+      const imageResponse = req.file ? {image: req.file.filename} : {success: 'ok'};
+      return res.status(200).send(imageResponse)
+    });
+  });
 });
 
+app.post('/profile', passport.authenticate('jwt', {session: false}), function(req, res) {
+    const userEmail = req.user.attributes.email;
+    if (req.fileValidationError) {
+      return res.status(400).send(req.fileValidationError);
+    }
+    if (req.file) {
+      User.forge({email: userEmail}).fetch().then(function (model) {
+        upload(req, res, (err) => {
+          if (err) {
+            return res.send({success: false});
+          } else {
+            fs.unlink(`public/${model.get('image')}`, () => {
+            });
+            User.where({email: userEmail})
+              .save({image: req.file.filename}, {patch: true});
+          }
+        })
+      })
+    }
+    if (req.body.newPassword) {
+      if (req.body.newPassword.length < 7) {
+        return res.status(400).send({password: 'Password length should me more than 6 characters'})
+      }
+      bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
+        User.where({email: userEmail})
+          .save({password_digest: hash}, {patch: true});
+      });
+    }
+    const imageResponse = req.file ? {image: req.file.filename} : {};
+    return res.status(200).send(imageResponse);
+});
 
+app.delete('/delete', passport.authenticate('jwt', {session: false}), (req, res) => {
+  Role.forge().fetchAll().then(roles => {
+    const requestRole = roles.filter((role) => {
+      return role.id == req.user.attributes.role_id
+    })[0].attributes.role;
+    if (requestRole !== 'admin' || req.body.email == req.user.attributes.email) {
+      return res.status(403).send('You have no rights for this action.');
+    }
+    User.where({email: req.body.email}).destroy().then(() => {
+      return res.status(200).send({success: 'ok'})
+    }).catch((err) => {
+      return res.status(404).send({err})
+    });
+  })
+});
 
 const PORT =  process.env.PORT || 3000;
 app.listen(PORT);
