@@ -67,7 +67,6 @@ const opts = {
 };
 
 const strategy = new JwtStrategy(opts, (payload, next) => {
-  // Get user from db
   User.forge({id: payload.id}).fetch().then(res => {
     next(null, res);
   });
@@ -156,10 +155,10 @@ app.post('/update', passport.authenticate('jwt', {session: false}), function(req
         return role.id == user.attributes.role_id
       })[0].attributes.role;
       if (requestRole == 'user' || (requestRole == 'premium' && userRole != 'user')) {
-        return res.status(403).send('You have no rights for this action.');
+        return res.status(403).send({rights: 'You have no rights for this action.'});
       }
       if (req.fileValidationError) {
-        return res.status(400).send(req.fileValidationError);
+        return res.status(400).send({image: req.fileValidationError});
       }
       if (req.file) {
         upload(req, res, (err) => {
@@ -176,11 +175,12 @@ app.post('/update', passport.authenticate('jwt', {session: false}), function(req
       if (req.body.newPassword) {
         if (req.body.newPassword.length < 7) {
           return res.status(400).send({password: 'Password length should me more than 6 characters'})
+        } else {
+          bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
+            User.where({email: userEmail})
+              .save({password_digest: hash}, {patch: true});
+          });
         }
-        bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
-          User.where({email: userEmail})
-            .save({password_digest: hash}, {patch: true});
-        });
       }
       if (req.body.selectedRole) {
         Role.forge({role: req.body.selectedRole}).fetch().then((role) => {
@@ -197,7 +197,7 @@ app.post('/update', passport.authenticate('jwt', {session: false}), function(req
 app.post('/profile', passport.authenticate('jwt', {session: false}), function(req, res) {
     const userEmail = req.user.attributes.email;
     if (req.fileValidationError) {
-      return res.status(400).send(req.fileValidationError);
+      return res.status(400).send({image: req.fileValidationError});
     }
     if (req.file) {
       User.forge({email: userEmail}).fetch().then(function (model) {
@@ -214,13 +214,14 @@ app.post('/profile', passport.authenticate('jwt', {session: false}), function(re
       })
     }
     if (req.body.newPassword) {
-      if (req.body.newPassword.length < 7) {
-        return res.status(400).send({password: 'Password length should me more than 6 characters'})
-      }
-      bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
-        User.where({email: userEmail})
-          .save({password_digest: hash}, {patch: true});
-      });
+      // if (req.body.newPassword.length < 7) {
+      //   return res.status(400).send({password: 'Password length should me more than 6 characters'})
+      // } else {
+        bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
+          User.where({email: userEmail})
+            .save({password_digest: hash}, {patch: true});
+        });
+      // }
     }
     const imageResponse = req.file ? {image: req.file.filename} : {};
     return res.status(200).send(imageResponse);
@@ -242,5 +243,38 @@ app.delete('/delete', passport.authenticate('jwt', {session: false}), (req, res)
   })
 });
 
-const PORT =  process.env.PORT || 3000;
+// app.post('/create', passport.authenticate('jwt', {session: false}), function(req, res) {
+//   console.log(req.user.attributes);
+//   if(req.body.password.length < 7) {
+//     return res.status(400).send({password: 'Password length should me more than 6 characters'})
+//   }
+//   Role.forge().fetchAll().then(roles => {
+//     const requestRole = roles.filter((role) => {
+//       return role.id == req.user.attributes.role_id
+//     })[0].attributes.role;
+
+//     if (requestRole !== 'admin') {
+//       return res.status(403).send('You have no rights for this action.');
+//     }
+//     Role.forge({role: req.body.userRole}).fetch().then((role) => {
+//       const user = new User({
+//         email: req.body.email,
+//         password: req.body.password,
+//         role_id: role.id
+//       });
+//       user.save().then((result) => {
+//         console.log(role.attributes)
+//         return res.status(201).send({success: 'User was created successfully!', result: {
+//           email: user.attributes.email,
+//           role: role.attributes.role
+//         }
+//       });
+//       }).catch(err => {
+//         return res.status(400).send(ERROR_MAPPING[err.code] || err)
+//       })
+//     })
+//   })
+// });
+
+const PORT =  3000;
 app.listen(PORT);
