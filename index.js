@@ -243,38 +243,34 @@ app.delete('/delete', passport.authenticate('jwt', {session: false}), (req, res)
   })
 });
 
-// app.post('/create', passport.authenticate('jwt', {session: false}), function(req, res) {
-//   console.log(req.user.attributes);
-//   if(req.body.password.length < 7) {
-//     return res.status(400).send({password: 'Password length should me more than 6 characters'})
-//   }
-//   Role.forge().fetchAll().then(roles => {
-//     const requestRole = roles.filter((role) => {
-//       return role.id == req.user.attributes.role_id
-//     })[0].attributes.role;
-
-//     if (requestRole !== 'admin') {
-//       return res.status(403).send('You have no rights for this action.');
-//     }
-//     Role.forge({role: req.body.userRole}).fetch().then((role) => {
-//       const user = new User({
-//         email: req.body.email,
-//         password: req.body.password,
-//         role_id: role.id
-//       });
-//       user.save().then((result) => {
-//         console.log(role.attributes)
-//         return res.status(201).send({success: 'User was created successfully!', result: {
-//           email: user.attributes.email,
-//           role: role.attributes.role
-//         }
-//       });
-//       }).catch(err => {
-//         return res.status(400).send(ERROR_MAPPING[err.code] || err)
-//       })
-//     })
-//   })
-// });
+app.post('/create', passport.authenticate('jwt', {session: false}), function(req, res) {
+  if(req.body.password.length < 7) {
+     return res.status(400).send({password: 'Password length should me more than 6 characters'})
+  }
+  Role.forge().fetchAll().then(roles => {
+    const requestRole = roles.filter((role) => {
+      return role.id == req.user.attributes.role_id
+    })[0].attributes.role;
+    if (requestRole !== 'admin') {
+      return res.status(403).send('You have no rights for this action.');
+    }
+    Role.forge({role: req.body.userRole}).fetch().then((role) => {
+      const user = new User({
+        email: req.body.email,
+        password: req.body.password,
+        role_id: role.id
+      });
+      user.save().then((result) => {
+        User.where({email: req.body.email}).fetch({withRelated: ['role_id']}).then(user => {
+          return res.status(200).send({result: user})
+        });
+      })
+      .catch(err => {
+        return res.status(400).send(ERROR_MAPPING[err.code] || err)
+      })
+    })
+  })
+});
 
 const PORT =  3000;
 app.listen(PORT);
