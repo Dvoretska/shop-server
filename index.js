@@ -214,14 +214,14 @@ app.post('/profile', passport.authenticate('jwt', {session: false}), function(re
       })
     }
     if (req.body.newPassword) {
-      // if (req.body.newPassword.length < 7) {
-      //   return res.status(400).send({password: 'Password length should me more than 6 characters'})
-      // } else {
+      if (req.body.newPassword.length < 7) {
+        return res.status(400).send({password: 'Password length should me more than 6 characters'})
+      } else {
         bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
           User.where({email: userEmail})
             .save({password_digest: hash}, {patch: true});
         });
-      // }
+      }
     }
     const imageResponse = req.file ? {image: req.file.filename} : {};
     return res.status(200).send(imageResponse);
@@ -254,20 +254,23 @@ app.post('/create', passport.authenticate('jwt', {session: false}), function(req
     if (requestRole !== 'admin') {
       return res.status(403).send('You have no rights for this action.');
     }
-    Role.forge({role: req.body.userRole}).fetch().then((role) => {
-      const user = new User({
-        email: req.body.email,
-        password: req.body.password,
-        role_id: role.id
+
+    const userId = roles.filter((role) => {
+      return role.attributes.role == req.body.userRole
+    })[0].attributes.id;
+
+    const user = new User({
+      email: req.body.email,
+      password: req.body.password,
+      role_id: userId
+    });
+    user.save().then(() => {
+      User.where({email: req.body.email}).fetch({withRelated: ['role_id']}).then(user => {
+        return res.status(200).send({result: user})
       });
-      user.save().then((result) => {
-        User.where({email: req.body.email}).fetch({withRelated: ['role_id']}).then(user => {
-          return res.status(200).send({result: user})
-        });
-      })
-      .catch(err => {
-        return res.status(400).send(ERROR_MAPPING[err.code] || err)
-      })
+    })
+    .catch(err => {
+      return res.status(400).send(ERROR_MAPPING[err.code] || err)
     })
   })
 });
