@@ -36,7 +36,7 @@ app.use(services.upload);
 app.use(express.static('public'))
 
 
-app.use('', require('./accounts/routes'));
+app.use('/', require('./accounts/routes'));
 
 const PORT =  3000;
 app.listen(PORT);

@@ -20,6 +20,9 @@ function isAdmin(role) {
 function getRole(roles, roleId) {
   return roles.filter((role) => {return role.id == roleId})[0].attributes.role
 }
+function getId(roles, userRole) {
+  return roles.filter((role) => {return role.attributes.role == userRole})[0].attributes.id;
+}
 
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -40,4 +43,4 @@ let upload = multer({storage: storage, fileFilter: function(req, file, callback)
   }
 }).single('file');
 
-module.exports = {isPasswordValid, isUser, isPremium, isAdmin, getRole, upload};
+module.exports = {isPasswordValid, isUser, isPremium, isAdmin, getRole, upload, getId};

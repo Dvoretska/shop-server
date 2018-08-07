@@ -21,7 +21,9 @@ const ERROR_MAPPING = {
   'login_error': {non_field_error: 'Incorrect email or password'}
 };
 
-app.post('/register', (req, res) => {
+const router = require('express').Router();
+
+router.post('/register', (req, res) => {
   if(services.isPasswordValid(req.body.password)) {
     return res.status(400).send({password: passwordError})
   }
@@ -45,7 +47,7 @@ app.post('/register', (req, res) => {
   })
 });
 
-app.post('/login', (req, res) => {
+router.post('/login', (req, res) => {
   models.User.forge({email: req.body.email}).fetch({withRelated: ['role_id']}).then(result => {
     if(!result) {
       return res.status(400).send(ERROR_MAPPING['login_error']);
@@ -65,7 +67,7 @@ app.post('/login', (req, res) => {
   });
 });
 
-app.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => {
+router.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => {
   models.Role.forge().fetchAll().then(roles => {
     const role = services.getRole(roles, req.user.attributes.role_id);
     if(services.isUser(role)) {
@@ -81,53 +83,51 @@ app.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => 
 });
 
 
-app.post('/profile', passport.authenticate('jwt', {session: false}), function(req, res) {
-    const userEmail = req.user.attributes.email;
-    if (req.fileValidationError) {
-      return res.status(400).send({image: req.fileValidationError});
-    }
-    if (req.file) {
-      models.User.forge({email: userEmail}).fetch().then(function (model) {
-        services.upload(req, res, (err) => {
-          if (err) {
-            return res.send({success: false});
-          } else {
-            fs.unlink(`public/${model.get('image')}`, () => {
-            });
-            models.User.where({email: userEmail})
-              .save({image: req.file.filename}, {patch: true});
-          }
-        })
-      })
-    }
-    if (req.body.newPassword) {
-      if (services.isPasswordValid(req.body.newPassword)) {
-        return res.status(400).send({password: passwordError})
-      } else {
-        bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
+router.post('/profile', passport.authenticate('jwt', {session: false}), function(req, res) {
+  const userEmail = req.user.attributes.email;
+  if (req.fileValidationError) {
+    return res.status(400).send({image: req.fileValidationError});
+  }
+  if (req.file) {
+    models.User.forge({email: userEmail}).fetch().then(function (model) {
+      services.upload(req, res, (err) => {
+        if (err) {
+          return res.send({success: false});
+        } else {
+          fs.unlink(`public/${model.get('image')}`, () => {
+          });
           models.User.where({email: userEmail})
-            .save({password_digest: hash}, {patch: true});
-        });
-      }
+            .save({image: req.file.filename}, {patch: true});
+        }
+      })
+    })
+  }
+  if (req.body.newPassword) {
+    if (services.isPasswordValid(req.body.newPassword)) {
+      return res.status(400).send({password: passwordError})
+    } else {
+      bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
+        models.User.where({email: userEmail})
+          .save({password_digest: hash}, {patch: true});
+      });
     }
-    const imageResponse = req.file ? {image: req.file.filename} : {};
-    return res.status(200).send(imageResponse);
+  }
+  const imageResponse = req.file ? {image: req.file.filename} : {};
+  return res.status(200).send(imageResponse);
 });
 
-const routes = [
-  app.post('/create', passport.authenticate('jwt', {session: false}), function(req, res) {
+router.post('/create', passport.authenticate('jwt', {session: false}), function(req, res) {
   if(services.isPasswordValid(req.body.password)) {
      return res.status(400).send({password: passwordError})
   }
   models.Role.forge().fetchAll().then(roles => {
-
     const requestRole = services.getRole(roles, req.user.attributes.role_id);
 
     if (!services.isAdmin(requestRole)) {
       return res.status(403).send(accessDenied);
     }
 
-    const userId = services.getRole(roles, req.body.userRole);
+    const userId = services.getId(roles, req.body.userRole);
 
     const user = new models.User({
       email: req.body.email,
@@ -141,12 +141,11 @@ const routes = [
     })
     .catch(err => {
       return res.status(400).send(ERROR_MAPPING[err.code] || err)
-      })
     })
   })
-];
+})
 
-app.delete('/delete', passport.authenticate('jwt', {session: false}), (req, res) => {
+router.delete('/delete', passport.authenticate('jwt', {session: false}), (req, res) => {
   models.Role.forge().fetchAll().then(roles => {
     const requestRole = services.getRole(roles, req.user.attributes.role_id);
     if (!services.isAdmin(requestRole) || req.body.email == req.user.attributes.email) {
@@ -160,7 +159,7 @@ app.delete('/delete', passport.authenticate('jwt', {session: false}), (req, res)
   })
 });
 
-app.post('/update', passport.authenticate('jwt', {session: false}), function(req, res) {
+router.post('/update', passport.authenticate('jwt', {session: false}), function(req, res) {
   models.Role.forge().fetchAll().then(roles => {
     const userEmail = req.body.email;
     models.User.forge({email: userEmail}).fetch().then(function (user) {
@@ -206,4 +205,4 @@ app.post('/update', passport.authenticate('jwt', {session: false}), function(req
   });
 });
 
-module.exports = routes;
+module.exports = router;
