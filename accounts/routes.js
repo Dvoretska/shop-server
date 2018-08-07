@@ -12,76 +12,47 @@ const models = require('./models');
 const services = require('./services');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
-
-const passwordError = 'Password length should me more than 6 characters';
-const accessDenied = 'You have no rights for this action.';
+const actions = require('./actions');
 
 const ERROR_MAPPING = {
   '23505': {email: 'Email already exists'},
   'login_error': {non_field_error: 'Incorrect email or password'}
 };
+const passwordError = 'Password length should me more than 6 characters';
+const accessDenied = 'You have no rights for this action.';
 
 const router = require('express').Router();
 
-router.post('/register', (req, res) => {
-  if(services.isPasswordValid(req.body.password)) {
-    return res.status(400).send({password: passwordError})
-  }
-  models.Role.forge({role: req.body.role || 'user'}).fetch().then(role => {
-    const user = new models.User({
-      email: req.body.email,
-      password: req.body.password
-    });
+// router.post('/register', (req, res) => {
+  // services.checkIfPasswordValid(req.body.password)
+  // if(services.isPasswordValid(req.body.password)) {
+  //   return res.status(400).send({password: passwordError})
+  // }
+//   models.Role.forge({role: req.body.role || 'user'}).fetch().then(role => {
+//     const user = new models.User({
+//       email: req.body.email,
+//       password: req.body.password
+//     });
 
-    user.save().then((result) => {
-      const payload = {id: result.id};
-      const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
-      return res.status(201).send({
-        email: user.attributes.email,
-        token: token,
-        role: role.attributes.role
-      });
-    }).catch(err => {
-      return res.status(400).send(ERROR_MAPPING[err.code] || err)
-    })
-  })
-});
+//     user.save().then((result) => {
+//       const payload = {id: result.id};
+//       const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
+//       return res.status(201).send({
+//         email: user.attributes.email,
+//         token: token,
+//         role: role.attributes.role
+//       });
+//     }).catch(err => {
+//       return res.status(400).send(ERROR_MAPPING[err.code] || err)
+//     })
+//   })
+// });
 
-router.post('/login', (req, res) => {
-  models.User.forge({email: req.body.email}).fetch({withRelated: ['role_id']}).then(result => {
-    if(!result) {
-      return res.status(400).send(ERROR_MAPPING['login_error']);
-    }
-    result.authenticate(req.body.password).then(result => {
-      const payload = {id: result.id};
-      const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
-      res.send({
-        token,
-        email: result.attributes.email,
-        image: result.attributes.image,
-        role: result.relations.role_id.attributes.role
-      });
-    }).catch(() => {
-      return res.status(400).send(ERROR_MAPPING['login_error']);
-    })
-  });
-});
+router.post('/register', services.checkIfPasswordValid, actions.register);
 
-router.get('/users', passport.authenticate('jwt', {session: false}), (req, res) => {
-  models.Role.forge().fetchAll().then(roles => {
-    const role = services.getRole(roles, req.user.attributes.role_id);
-    if(services.isUser(role)) {
-      return res.status(403).send(accessDenied);
-    }
-    models.User.forge().fetchAll({withRelated: ['role_id']}).then(users => {
-      if(!users) {
-        return res.status(404).send('Not Found');
-      }
-      return res.status(200).send({results: users, meta: roles})
-    });
-  });
-});
+router.post('/login', actions.login);
 
+router.get('/users', passport.authenticate('jwt', {session: false}), services.checkRole(['admin', 'premium']), actions.getUsersList);
 
 router.post('/profile', passport.authenticate('jwt', {session: false}), function(req, res) {
   const userEmail = req.user.attributes.email;
@@ -116,48 +87,9 @@ router.post('/profile', passport.authenticate('jwt', {session: false}), function
   return res.status(200).send(imageResponse);
 });
 
-router.post('/create', passport.authenticate('jwt', {session: false}), function(req, res) {
-  if(services.isPasswordValid(req.body.password)) {
-     return res.status(400).send({password: passwordError})
-  }
-  models.Role.forge().fetchAll().then(roles => {
-    const requestRole = services.getRole(roles, req.user.attributes.role_id);
+router.post('/create', passport.authenticate('jwt', {session: false}), services.checkRole(['admin']), actions.createUser);
 
-    if (!services.isAdmin(requestRole)) {
-      return res.status(403).send(accessDenied);
-    }
-
-    const userId = services.getId(roles, req.body.userRole);
-
-    const user = new models.User({
-      email: req.body.email,
-      password: req.body.password,
-      role_id: userId
-    });
-    user.save().then(() => {
-      models.User.where({email: req.body.email}).fetch({withRelated: ['role_id']}).then(user => {
-        return res.status(200).send({result: user})
-      });
-    })
-    .catch(err => {
-      return res.status(400).send(ERROR_MAPPING[err.code] || err)
-    })
-  })
-})
-
-router.delete('/delete', passport.authenticate('jwt', {session: false}), (req, res) => {
-  models.Role.forge().fetchAll().then(roles => {
-    const requestRole = services.getRole(roles, req.user.attributes.role_id);
-    if (!services.isAdmin(requestRole) || req.body.email == req.user.attributes.email) {
-      return res.status(403).send(accessDenied);
-    }
-    models.User.where({email: req.body.email}).destroy().then(() => {
-      return res.status(200).send({success: 'ok'})
-    }).catch((err) => {
-      return res.status(404).send({err})
-    });
-  })
-});
+router.delete('/delete', passport.authenticate('jwt', {session: false}), services.checkRole(['admin']), actions.deleteUser);
 
 router.post('/update', passport.authenticate('jwt', {session: false}), function(req, res) {
   models.Role.forge().fetchAll().then(roles => {
