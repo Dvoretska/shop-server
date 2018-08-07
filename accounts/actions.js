@@ -62,6 +62,36 @@ function login(req, res) {
   })
 }
 
+function profile(req, res) {
+  const userEmail = req.user.attributes.email;
+  if (req.file) {
+    models.User.forge({email: userEmail}).fetch().then(function (model) {
+      services.upload(req, res, (err) => {
+        if (err) {
+          return res.send({success: false});
+        } else {
+          fs.unlink(`public/${model.get('image')}`, () => {
+          });
+          models.User.where({email: userEmail})
+            .save({image: req.file.filename}, {patch: true});
+        }
+      })
+    })
+  }
+  if (req.body.newPassword) {
+    if (services.isPasswordValid(req.body.newPassword)) {
+      return res.status(400).send({password: passwordError})
+    } else {
+      bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
+        models.User.where({email: userEmail})
+          .save({password_digest: hash}, {patch: true});
+      });
+    }
+  }
+  const imageResponse = req.file ? {image: req.file.filename} : {};
+  return res.status(200).send(imageResponse);
+}
+
 function getUsersList(req, res) {
 	models.Role.forge().fetchAll().then(roles => {
 		models.User.forge().fetchAll({withRelated: ['role_id']}).then(users => {
@@ -71,6 +101,42 @@ function getUsersList(req, res) {
 	    return res.status(200).send({results: users, meta: roles})
 	  });
 	})
+}
+
+function update(req, res) {
+  const userEmail = req.body.email;
+  if (req.file) {
+    services.upload(req, res, (err) => {
+      if (err) {
+        return res.send({success: false});
+      } else {
+        models.User.forge({email: userEmail}).fetch().then(function (user) {
+          fs.unlink(`public/${user.get('image')}`, () => {
+          });
+        });
+        models.User.where({email: userEmail})
+          .save({image: req.file.filename}, {patch: true});
+      }
+    })
+  }
+  if (req.body.newPassword) {
+    if (services.isPasswordValid(req.body.newPassword)) {
+      return res.status(400).send({password: passwordError})
+    } else {
+      bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
+        models.User.where({email: userEmail})
+          .save({password_digest: hash}, {patch: true});
+      });
+    }
+  }
+  if (req.body.selectedRole) {
+    models.Role.forge({role: req.body.selectedRole}).fetch().then((role) => {
+      models.User.where({email: userEmail})
+        .save({role_id: role.id}, {patch: true});
+    })
+  }
+  const imageResponse = req.file ? {image: req.file.filename} : {success: 'ok'};
+  return res.status(200).send(imageResponse)
 }
 
 function deleteUser(req, res) {
@@ -98,8 +164,7 @@ function createUser(req, res) {
 	    return res.status(400).send(ERROR_MAPPING[err.code] || err)
 	  })
 	})
-  
 }
 
     
-module.exports = {deleteUser, createUser, getUsersList, login, register};
+module.exports = {deleteUser, createUser, getUsersList, login, register, profile, update};

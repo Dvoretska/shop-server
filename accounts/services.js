@@ -43,7 +43,7 @@ function getRoleId(userRole, callback) {
   })
 }
 
-function checkRole(acceptRoles) {
+function allowedRoles(acceptRoles) {
   return function(req, res, next) {
     models.Role.forge().fetchAll().then(roles => {
       const requestRole = getRole(roles, req.user.attributes.role_id);
@@ -56,6 +56,23 @@ function checkRole(acceptRoles) {
   }
 }
 
+function limitedAllowedRoles(acceptRoles) {
+  return function(req, res, next) {
+    models.Role.forge().fetchAll().then(roles => {
+      const userEmail = req.body.email;
+      models.User.forge({email: userEmail}).fetch().then(function (user) {
+        const requestRole = getRole(roles, req.user.attributes.role_id);
+        const userRole = getRole(roles, user.attributes.role_id);
+        if (isAdmin(requestRole) || acceptRoles.indexOf(requestRole) !== -1 && isUser(userRole)) {
+          next();
+        } else {
+          return res.status(403).send({rights: accessDenied});
+        }
+      })
+    })
+  }
+};
+
 function checkIfPasswordValid(req, res, next) {
   if(req.body.password.length < 7) {
     return res.status(400).send({password: passwordError});
@@ -64,6 +81,13 @@ function checkIfPasswordValid(req, res, next) {
   }
 }
 
+function checkIfImageValid(req, res, next) {
+  if(req.fileValidationError) {
+    return res.status(400).send({image: req.fileValidationError});
+  } else {
+    next();
+  }
+}
 
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -84,4 +108,14 @@ let upload = multer({storage: storage, fileFilter: function(req, file, callback)
   }
 }).single('file');
 
-module.exports = {isPasswordValid, isUser, isPremium, isAdmin, getRole, upload, getRoleId, checkRole, checkIfPasswordValid};
+module.exports = {isPasswordValid,
+                  isUser,
+                  isPremium,
+                  isAdmin,
+                  getRole,
+                  upload,
+                  getRoleId,
+                  allowedRoles,
+                  checkIfPasswordValid,
+                  checkIfImageValid,
+                  limitedAllowedRoles};
