@@ -5,6 +5,7 @@ exports.up = function(knex, Promise) {
     table.string('text').notNull();
     table.bigInteger('user_id').unsigned().index().references('id').inTable('users');
     table.bigInteger('post_id').unsigned().index().references('id').inTable('posts');
+    table.timestamp('created').notNullable().defaultTo(knex.raw('now()'))
   })
 };
 

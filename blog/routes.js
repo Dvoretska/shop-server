@@ -21,5 +21,9 @@ router.post('/create-post', sharedServices.isAuthenticated, sharedServices.allow
 
 router.get('/posts', sharedServices.isAuthenticated, actions.getPosts);
 
+router.get('/post', sharedServices.isAuthenticated, actions.getPost);
+
+router.post('/comment', sharedServices.isAuthenticated, actions.createComment);
+
 
 module.exports = router;
