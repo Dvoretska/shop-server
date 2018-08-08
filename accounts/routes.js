@@ -8,11 +8,12 @@ const securePassword = require('bookshelf-secure-password');
 const db = bookshelf(knexDb);
 db.plugin(securePassword);
 const jwt = require('jsonwebtoken');
-const models = require('./models');
+const models = require('../shared/models');
 const services = require('./services');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const actions = require('./actions');
+const sharedServices = require('../shared/shared-services');
 
 
 const router = require('express').Router();
@@ -21,14 +22,14 @@ router.post('/register', services.checkIfPasswordValid, actions.register);
 
 router.post('/login', actions.login);
 
-router.get('/users', passport.authenticate('jwt', {session: false}), services.allowedRoles(['admin', 'premium']), actions.getUsersList);
+router.get('/users', sharedServices.isAuthenticated, services.allowedRoles(['admin', 'premium']), actions.getUsersList);
 
-router.post('/profile', passport.authenticate('jwt', {session: false}), services.checkIfImageValid, actions.profile);
+router.post('/profile', sharedServices.isAuthenticated, services.checkIfImageValid, actions.profile);
 
-router.post('/create', passport.authenticate('jwt', {session: false}), services.allowedRoles(['admin']), actions.createUser);
+router.post('/create', sharedServices.isAuthenticated, services.allowedRoles(['admin']), actions.createUser);
 
-router.delete('/delete', passport.authenticate('jwt', {session: false}), services.allowedRoles(['admin']), actions.deleteUser);
+router.delete('/delete', sharedServices.isAuthenticated, services.allowedRoles(['admin']), actions.deleteUser);
 
-router.post('/update', passport.authenticate('jwt', {session: false}), services.checkIfImageValid, services.limitedAllowedRoles(['premium']), actions.update);
+router.post('/update', sharedServices.isAuthenticated, services.checkIfImageValid, services.limitedAllowedRoles(['premium']), actions.update);
 
 module.exports = router;

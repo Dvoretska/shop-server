@@ -8,12 +8,9 @@ const securePassword = require('bookshelf-secure-password');
 const db = bookshelf(knexDb);
 db.plugin(securePassword);
 const jwt = require('jsonwebtoken');
-const models = require('./models');
-const services = require('./services');
+const models = require('../shared/models');
 const bcrypt = require('bcrypt');
-const fs = require('fs');
-const multer = require('multer');
-const path = require('path');
+const sharedServices = require('../shared/shared-services');
 
 const passwordError = 'Password length should me more than 6 characters';
 const accessDenied = 'You have no rights for this action.';
@@ -89,31 +86,11 @@ function checkIfImageValid(req, res, next) {
   }
 }
 
-let storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, './public');
-    },
-    filename: (req, file, cb) => {
-      cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-    }
-});
-
-let upload = multer({storage: storage, fileFilter: function(req, file, callback) {
-  let ext = path.extname(file.originalname);
-  if (ext !== '.png' && ext !== '.jpg' && ext !== '.gif' && ext !== '.jpeg') {
-    req.fileValidationError = 'Only images are allowed';
-    return callback(null, false, req.fileValidationError)
-  }
-  callback(null, true)
-  }
-}).single('file');
-
 module.exports = {isPasswordValid,
                   isUser,
                   isPremium,
                   isAdmin,
                   getRole,
-                  upload,
                   getRoleId,
                   allowedRoles,
                   checkIfPasswordValid,

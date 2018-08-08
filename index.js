@@ -9,8 +9,8 @@ const ExtractJwt = passportJWT.ExtractJwt;
 const parser = require('body-parser');
 const cors = require('cors');
 const busboy = require('connect-busboy');
-const models = require('./accounts/models');
-const services = require('./accounts/services');
+const models = require('./shared/models');
+const services = require('./shared/shared-services');
 
 
 const opts = {
@@ -33,10 +33,11 @@ app.use(parser.urlencoded({
 app.use(parser.json());
 app.use(busboy());
 app.use(services.upload);
-app.use(express.static('public'))
+app.use(express.static('public'));
 
 
 app.use('/', require('./accounts/routes'));
+app.use('/', require('./blog/routes'));
 
 const PORT =  3000;
 app.listen(PORT);

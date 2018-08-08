@@ -8,8 +8,9 @@ const securePassword = require('bookshelf-secure-password');
 const db = bookshelf(knexDb);
 db.plugin(securePassword);
 const jwt = require('jsonwebtoken');
-const models = require('./models');
+const models = require('../shared/models');
 const services = require('./services');
+const sharedServices = require('../shared/shared-services');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 
@@ -66,7 +67,7 @@ function profile(req, res) {
   const userEmail = req.user.attributes.email;
   if (req.file) {
     models.User.forge({email: userEmail}).fetch().then(function (model) {
-      services.upload(req, res, (err) => {
+        sharedServices.upload(req, res, (err) => {
         if (err) {
           return res.send({success: false});
         } else {
@@ -106,7 +107,7 @@ function getUsersList(req, res) {
 function update(req, res) {
   const userEmail = req.body.email;
   if (req.file) {
-    services.upload(req, res, (err) => {
+      sharedServices.upload(req, res, (err) => {
       if (err) {
         return res.send({success: false});
       } else {
