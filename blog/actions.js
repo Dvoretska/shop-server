@@ -24,15 +24,13 @@ const ERROR_MAPPING = {
 
 
 function createPost(req, res) {
-
     const post = new models.Post({
         title: req.body.title,
         content: req.body.text,
         image: req.file.filename,
         user_id: req.user.attributes.id
     });
-    models.Post.forge({title: req.body.title}).fetch({withRelated: ['user_id']}).then((user)=> {
-        console.log(user.relations.user_id.attributes)
+    models.Post.forge().fetch({withRelated: ['user_id']}).then((user)=> {
         post.save().then(() => {
             return res.status(201).send({
                 post, user: user.relations.user_id.attributes
@@ -42,5 +40,14 @@ function createPost(req, res) {
         })
     })
 }
+
+function getPosts(req, res) {
+    models.Post.forge().fetchAll({withRelated: ['user_id']}).then(posts => {
+        if(!posts) {
+            return res.status(404).send('Not Found');
+        }
+        return res.status(200).send({results: posts})
+    });
+}
     
-module.exports = {createPost};
+module.exports = {createPost, getPosts};

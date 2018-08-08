@@ -1,16 +1,11 @@
 const app = module.exports = require('express')();
-const passport = require('passport');
-const parser = require('body-parser');
 const knex = require('knex');
 const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
 const bookshelf = require('bookshelf');
 const securePassword = require('bookshelf-secure-password');
 const db = bookshelf(knexDb);
 db.plugin(securePassword);
-const jwt = require('jsonwebtoken');
 const models = require('../shared/models');
-const bcrypt = require('bcrypt');
-const sharedServices = require('../shared/shared-services');
 
 const passwordError = 'Password length should me more than 6 characters';
 const accessDenied = 'You have no rights for this action.';
@@ -21,10 +16,6 @@ function isPasswordValid(password) {
 
 function isUser(role) {
   return role == 'user';
-}
-
-function isPremium(role) {
-  return role == 'premium';
 }
 
 function isAdmin(role) {
@@ -86,13 +77,4 @@ function checkIfImageValid(req, res, next) {
   }
 }
 
-module.exports = {isPasswordValid,
-                  isUser,
-                  isPremium,
-                  isAdmin,
-                  getRole,
-                  getRoleId,
-                  allowedRoles,
-                  checkIfPasswordValid,
-                  checkIfImageValid,
-                  limitedAllowedRoles};
+module.exports = {isPasswordValid, getRole, getRoleId, allowedRoles, checkIfPasswordValid, checkIfImageValid, limitedAllowedRoles};

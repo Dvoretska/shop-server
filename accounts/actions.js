@@ -1,6 +1,4 @@
 const app = module.exports = require('express')();
-const passport = require('passport');
-const parser = require('body-parser');
 const knex = require('knex');
 const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
 const bookshelf = require('bookshelf');
@@ -15,7 +13,6 @@ const bcrypt = require('bcrypt');
 const fs = require('fs');
 
 const passwordError = 'Password length should me more than 6 characters';
-const accessDenied = 'You have no rights for this action.';
 
 const ERROR_MAPPING = {
   '23505': {email: 'Email already exists'},
