@@ -37,11 +37,11 @@ function createPost(req, res) {
 }
 
 function getPosts(req, res) {
-    models.Post.forge().fetchAll({ columns: ['image', 'title'] }).then(posts => {
+    models.Post.forge().fetchAll({ columns: ['image', 'title', 'id'] }).then(posts => {
         if(!posts) {
             return res.status(404).send('Not Found');
         }
-        return res.status(200).send({results: posts})
+        return res.status(200).send(posts)
     });
 }
 
