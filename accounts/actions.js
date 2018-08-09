@@ -138,10 +138,13 @@ function update(req, res) {
 }
 
 function deleteUser(req, res) {
-	models.User.where({email: req.body.email}).destroy().then(() => {
-    return res.status(200).send({success: 'ok'})
-  }).catch((err) => {
-    return res.status(404).send({err})
+  models.User.forge({email: req.body.email}).fetch().then(function (user) {
+    fs.unlink(`public/${user.get('image')}`, () => {});
+    models.User.where({email: req.body.email}).destroy().then(() => {
+      return res.status(200).send({success: 'ok'})
+    }).catch((err) => {
+      return res.status(404).send({err})
+    });
   });
 }
 

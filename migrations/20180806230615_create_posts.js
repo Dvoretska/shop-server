@@ -5,7 +5,7 @@ exports.up = function(knex, Promise) {
     table.string('title').notNull();
     table.string('image').notNull();
     table.string('content').notNull();
-    table.bigInteger('user_id').unsigned().index().references('id').inTable('users');
+    table.bigInteger('user_id').unsigned().index().references('id').inTable('users').onDelete('SET NULL');
   })
 };
 
