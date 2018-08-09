@@ -41,7 +41,8 @@ function getPosts(req, res) {
         if(!posts) {
             return res.status(404).send('Not Found');
         }
-        return res.status(200).send(posts)
+        const ids = posts.map((post) => {return post.id})
+        return res.status(200).send({posts, meta: ids})
     });
 }
 
@@ -50,7 +51,10 @@ function getPost(req, res) {
         if(!post) {
             return res.status(404).send('Not Found');
         }
-        models.Comment.forge({post_id: post.id}).fetchAll({ columns: ['text', 'created', 'user_id'], withRelated: ['user_id'] }).then(result => {
+        models.Comment.where({post_id: post.id}).fetchAll({ columns: ['text', 'created', 'user_id'], withRelated: ['user_id', 'post_id'] }).then(result => {
+            if (!result) {
+            return res.status(200).send({post, comments: []})
+            }
             const comments = result.map((comment) => {
                 return {
                     text: comment. attributes.text,
@@ -58,7 +62,7 @@ function getPost(req, res) {
                     email: comment.relations.user_id.attributes.email
                 }
             });
-            return res.status(200).send({post, comments})
+            return res.status(200).send({post, comments: comments})
         });
 
     });
