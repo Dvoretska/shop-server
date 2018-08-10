@@ -4,8 +4,8 @@ exports.up = function(knex, Promise) {
     table.increments('id').unsigned().primary();
     table.string('title').notNull();
     table.string('image').notNull();
-    table.string('content').notNull();
-    table.bigInteger('user_id').unsigned().index().references('id').inTable('users').onDelete('SET NULL');
+    table.text('content').notNull();
+    table.bigInteger('user_id').unsigned().index().references('id').inTable('users').onDelete('CASCADE');
   })
 };
 
