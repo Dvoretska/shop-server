@@ -9,8 +9,8 @@ const ExtractJwt = passportJWT.ExtractJwt;
 const parser = require('body-parser');
 const cors = require('cors');
 const busboy = require('connect-busboy');
-const models = require('./shared/models');
-const services = require('./shared/shared-services');
+const accounts = require('./accounts/models');
+const upload = require('./services/upload');
 
 
 const opts = {
@@ -19,7 +19,7 @@ const opts = {
 };
 
 const strategy = new JwtStrategy(opts, (payload, next) => {
-  models.User.forge({id: payload.id}).fetch().then(res => {
+  accounts.User.forge({id: payload.id}).fetch().then(res => {
     next(null, res);
   });
 });
@@ -32,7 +32,7 @@ app.use(parser.urlencoded({
 }));
 app.use(parser.json());
 app.use(busboy());
-app.use(services.upload);
+app.use(upload);
 app.use(express.static('public'));
 
 

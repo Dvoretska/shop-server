@@ -1,29 +1,27 @@
-const app = module.exports = require('express')();
-const passport = require('passport');
-const parser = require('body-parser');
-const knex = require('knex');
-const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
-const bookshelf = require('bookshelf');
-const securePassword = require('bookshelf-secure-password');
-const db = bookshelf(knexDb);
-db.plugin(securePassword);
-const jwt = require('jsonwebtoken');
-const services = require('../blog/services');
-const sharedServices = require('../shared/shared-services')
-const bcrypt = require('bcrypt');
-const fs = require('fs');
 const actions = require('./actions');
+const validation = require('../services/validation');
+const auth = require('../services/auth');
 
 
 const router = require('express').Router();
 
-router.post('/create-post', sharedServices.isAuthenticated, sharedServices.allowedRoles(['user', 'premium']), sharedServices.checkIfImageValid, actions.createPost);
+router.post('/create-post',
+  auth.isAuthenticated,
+  validation.allowedRoles(['user', 'premium']),
+  validation.isImageValid,
+  actions.createPost);
 
-router.get('/posts', sharedServices.isAuthenticated, actions.getPosts);
+router.get('/posts',
+  auth.isAuthenticated,
+  actions.getPosts);
 
-router.get('/post', sharedServices.isAuthenticated, actions.getPost);
+router.get('/post',
+  auth.isAuthenticated,
+  actions.getPost);
 
-router.post('/comment', sharedServices.isAuthenticated, actions.createComment);
+router.post('/comment',
+  auth.isAuthenticated,
+  actions.createComment);
 
 
 module.exports = router;

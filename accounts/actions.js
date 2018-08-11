@@ -1,18 +1,9 @@
-const app = module.exports = require('express')();
-const knex = require('knex');
-const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
-const bookshelf = require('bookshelf');
-const securePassword = require('bookshelf-secure-password');
-const db = bookshelf(knexDb);
-db.plugin(securePassword);
 const jwt = require('jsonwebtoken');
-const models = require('../shared/models');
-const services = require('./services');
-const sharedServices = require('../shared/shared-services');
+const models = require('./models');
+const upload = require('../services/upload');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
-
-const passwordError = 'Password length should me more than 6 characters';
+const validation = require('../services/validation');
 
 const ERROR_MAPPING = {
   '23505': {email: 'Email already exists'},
@@ -64,7 +55,7 @@ function profile(req, res) {
   const userEmail = req.user.attributes.email;
   if (req.file) {
     models.User.forge({email: userEmail}).fetch().then(function (model) {
-        sharedServices.upload(req, res, (err) => {
+        upload(req, res, (err) => {
         if (err) {
           return res.send({success: false});
         } else {
@@ -76,15 +67,11 @@ function profile(req, res) {
       })
     })
   }
-  if (req.body.newPassword) {
-    if (services.isPasswordValid(req.body.newPassword)) {
-      return res.status(400).send({password: passwordError})
-    } else {
-      bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
-        models.User.where({email: userEmail})
-          .save({password_digest: hash}, {patch: true});
-      });
-    }
+  if (req.body.password) {
+    bcrypt.hash(req.body.password, 10, function (err, hash) {
+      models.User.where({email: userEmail})
+        .save({password_digest: hash}, {patch: true});
+    });
   }
   const imageResponse = req.file ? {image: req.file.filename} : {};
   return res.status(200).send(imageResponse);
@@ -104,7 +91,7 @@ function getUsersList(req, res) {
 function update(req, res) {
   const userEmail = req.body.email;
   if (req.file) {
-      sharedServices.upload(req, res, (err) => {
+      upload(req, res, (err) => {
       if (err) {
         return res.send({success: false});
       } else {
@@ -117,15 +104,11 @@ function update(req, res) {
       }
     })
   }
-  if (req.body.newPassword) {
-    if (services.isPasswordValid(req.body.newPassword)) {
-      return res.status(400).send({password: passwordError})
-    } else {
-      bcrypt.hash(req.body.newPassword, 10, function (err, hash) {
-        models.User.where({email: userEmail})
-          .save({password_digest: hash}, {patch: true});
-      });
-    }
+  if (req.body.password) {
+    bcrypt.hash(req.body.password, 10, function (err, hash) {
+      models.User.where({email: userEmail})
+        .save({password_digest: hash}, {patch: true});
+    });
   }
   if (req.body.selectedRole) {
     models.Role.forge({role: req.body.selectedRole}).fetch().then((role) => {
@@ -134,7 +117,7 @@ function update(req, res) {
     })
   }
   const imageResponse = req.file ? {image: req.file.filename} : {success: 'ok'};
-  return res.status(200).send(imageResponse)
+  return res.status(200).send(imageResponse);
 }
 
 function deleteUser(req, res) {
@@ -149,7 +132,7 @@ function deleteUser(req, res) {
 }
 
 function createUser(req, res) {
-	services.getRoleId(req.body.userRole, (id) => {
+	validation.getRoleId(req.body.userRole, (id) => {
 	const user = new models.User({
     email: req.body.email,
     password: req.body.password,

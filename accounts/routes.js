@@ -1,29 +1,43 @@
-const app = module.exports = require('express')();
-const knex = require('knex');
-const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
-const bookshelf = require('bookshelf');
-const securePassword = require('bookshelf-secure-password');
-const db = bookshelf(knexDb);
-db.plugin(securePassword);
-const services = require('./services');
 const actions = require('./actions');
-const sharedServices = require('../shared/shared-services');
+const validation = require('../services/validation');
+const auth = require('../services/auth');
 
 
 const router = require('express').Router();
 
-router.post('/register', services.checkIfPasswordValid, actions.register);
+router.post('/register',
+  validation.isPasswordValid,
+  actions.register);
 
-router.post('/login', actions.login);
+router.post('/login',
+  actions.login);
 
-router.get('/users', sharedServices.isAuthenticated, services.allowedRoles(['admin', 'premium']), actions.getUsersList);
+router.get('/users',
+  auth.isAuthenticated,
+  validation.allowedRoles(['admin', 'premium']),
+  actions.getUsersList);
 
-router.post('/profile', sharedServices.isAuthenticated, services.checkIfImageValid, actions.profile);
+router.post('/profile',
+  auth.isAuthenticated,
+  validation.isPasswordValidOrEmpty,
+  validation.isImageValid,
+  actions.profile);
 
-router.post('/create', sharedServices.isAuthenticated, services.allowedRoles(['admin']), actions.createUser);
+router.post('/create',
+  auth.isAuthenticated,
+  validation.allowedRoles(['admin']),
+  actions.createUser);
 
-router.delete('/delete', sharedServices.isAuthenticated, services.allowedRoles(['admin']), actions.deleteUser);
+router.delete('/delete',
+  auth.isAuthenticated,
+  validation.allowedRoles(['admin']),
+  actions.deleteUser);
 
-router.post('/update', sharedServices.isAuthenticated, services.checkIfImageValid, services.limitedAllowedRoles(['premium']), actions.update);
+router.post('/update',
+  auth.isAuthenticated,
+  validation.isPasswordValidOrEmpty,
+  validation.isImageValid,
+  validation.limitedAllowedRoles(['premium']),
+  actions.update);
 
 module.exports = router;

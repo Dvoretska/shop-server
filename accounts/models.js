@@ -20,20 +20,4 @@ const User = db.Model.extend({
     },
 });
 
-const Post = db.Model.extend({
-    tableName: 'posts',
-    user_id: function() {
-        return this.belongsTo(User, 'user_id');
-    }
-});
-const Comment = db.Model.extend({
-    tableName: 'comments',
-    user_id: function() {
-        return this.belongsTo(User, 'user_id');
-    },
-    post_id: function() {
-        return this.belongsTo(Post, 'post_id');
-    },
-});
-
-module.exports = {User, Role, Post, Comment};
+module.exports = {User, Role};

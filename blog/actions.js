@@ -1,26 +1,4 @@
-const app = module.exports = require('express')();
-const passport = require('passport');
-const parser = require('body-parser');
-const knex = require('knex');
-const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
-const bookshelf = require('bookshelf');
-const securePassword = require('bookshelf-secure-password');
-const db = bookshelf(knexDb);
-db.plugin(securePassword);
-const jwt = require('jsonwebtoken');
-const models = require('../shared/models');
-const services = require('./services');
-const sharedServices = require('../shared/shared-services')
-const bcrypt = require('bcrypt');
-const fs = require('fs');
-
-const passwordError = 'Password length should me more than 6 characters';
-const accessDenied = 'You have no rights for this action.';
-
-const ERROR_MAPPING = {
-  '23505': {email: 'Email already exists'},
-  'login_error': {non_field_error: 'Incorrect email or password'}
-};
+const models = require('./models');
 
 function createPost(req, res) {
     const post = new models.Post({
@@ -57,8 +35,8 @@ function getPost(req, res) {
             }
             const comments = result.map((comment) => {
                 return {
-                    text: comment. attributes.text,
-                    created: comment. attributes.created,
+                    text: comment.attributes.text,
+                    created: comment.attributes.created,
                     email: comment.relations.user_id.attributes.email
                 }
             });
@@ -75,7 +53,11 @@ function createComment(req, res) {
         post_id: req.body.post_id
     });
     comment.save().then(() => {
-        return res.status(201).send({comment, user: req.user});
+        return res.status(201).send({comment: {
+            text: comment.attributes.text,
+            created: new Date(),
+            email: req.user.attributes.email
+        }, user: req.user});
     }).catch(err => {
         return res.status(400).send(err)
     })
