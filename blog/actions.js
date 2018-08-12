@@ -1,4 +1,6 @@
 const models = require('./models');
+const upload = require('../services/upload');
+const fs = require('fs');
 
 function createPost(req, res) {
     const post = new models.Post({
@@ -29,12 +31,13 @@ function getPost(req, res) {
         if(!post) {
             return res.status(404).send('Not Found');
         }
-        models.Comment.where({post_id: post.id}).fetchAll({ columns: ['text', 'created', 'user_id'], withRelated: ['user_id', 'post_id'] }).then(result => {
+        models.Comment.where({post_id: post.id}).query('orderBy', 'created').fetchAll({ columns: ['text', 'created', 'user_id', 'id'], withRelated: ['user_id', 'post_id'] }).then(result => {
             if (!result) {
             return res.status(200).send({post, comments: []})
             }
             const comments = result.map((comment) => {
                 return {
+                    id: comment.attributes.id,
                     text: comment.attributes.text,
                     created: comment.attributes.created,
                     email: comment.relations.user_id.attributes.email
@@ -54,13 +57,63 @@ function createComment(req, res) {
     });
     comment.save().then(() => {
         return res.status(201).send({comment: {
+            id: comment.attributes.id,
             text: comment.attributes.text,
             created: new Date(),
             email: req.user.attributes.email
-        }, user: req.user});
+        }});
     }).catch(err => {
         return res.status(400).send(err)
     })
 }
+
+function updateComment(req, res) {
+    models.Comment.where({id: req.body.id}).save({text: req.body.text}, {patch: true})
+    .then((comment) => {
+        return res.status(201).send({comment});
+    }).catch(err => {
+        return res.status(400).send(err)
+    })
+}
+
+function deleteComment(req, res) {
+    models.Comment.where({id: req.body.id}).destroy().then(() => {
+      return res.status(200).send({success: 'ok'})
+    }).catch((err) => {
+      return res.status(404).send({err})
+    });
+}
+
+function deletePost(req, res) {
+    models.Post.where({id: req.body.id}).destroy().then(() => {
+      return res.status(200).send({success: 'ok'})
+    }).catch((err) => {
+      return res.status(404).send({err})
+    });
+}
+
+function updatePost(req, res) {
+    const body = req.body;
+    const postId = req.body.id;
+    models.Post.forge({id: postId}).fetch().then(function (post) {
+    upload(req, res, (err) => {
+        if (err) {
+            return res.send({success: false});
+        } else {
+            let data = {image: post.attributes.image, content: body.content, title: body.title};
+            if (req.file) {
+                fs.unlink(`public/${post.get('image')}`, () => {});
+                data['image'] = req.file.filename
+            }
+            models.Post.where({id: postId}).save(data, {patch: true})
+               .then((result) => {
+                 return res.status(201).send({result});
+               }).catch(err => {
+                 return res.status(400).send(err)
+               });
+            }
+        })
+    });
+}
     
-module.exports = {createPost, getPosts, getPost, createComment};
+module.exports = {createPost, getPosts, getPost, createComment, updateComment, deleteComment, deletePost, updatePost};

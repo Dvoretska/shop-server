@@ -23,5 +23,21 @@ router.post('/comment',
   auth.isAuthenticated,
   actions.createComment);
 
+router.post('/update-comment',
+  auth.isAuthenticated,
+  actions.updateComment);
+
+router.delete('/delete-comment',
+  auth.isAuthenticated,
+  actions.deleteComment);
+
+router.delete('/delete-post',
+  auth.isAuthenticated,
+  actions.deletePost);
+
+router.post('/update-post',
+  auth.isAuthenticated,
+  validation.isImageValid,
+  actions.updatePost);
 
 module.exports = router;
