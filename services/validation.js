@@ -1,4 +1,5 @@
 const accounts = require('../accounts/models');
+const blog = require('../blog/models');
 
 const passwordError = 'Password length should me more than 6 characters';
 const accessDenied = 'You have no rights for this action.';
@@ -9,6 +10,10 @@ function isUser(role) {
 
 function isAdmin(role) {
   return role == 'admin';
+}
+
+function isPremium(role) {
+  return role == 'premium';
 }
 
 function getRole(roles, roleId) {
@@ -48,7 +53,41 @@ function limitedAllowedRoles(acceptRoles) {
       })
     })
   }
-};
+}
+
+function allowedRolesHandleBlog(acceptRoles) {
+    return function(req, res, next) {
+        blog.Post.forge({id: req.body.id}).fetch().then(post => {
+            const postOwnerId = post.attributes.user_id;
+            const reqUserId = req.user.id;
+            accounts.Role.forge().fetchAll().then(roles => {
+                const requestRole = getRole(roles, req.user.attributes.role_id);
+                if(acceptRoles.indexOf(requestRole) == -1 && postOwnerId != reqUserId) {
+                    return res.status(403).send({rights: accessDenied});
+                } else {
+                  next();
+                }
+            })
+        })
+    }
+}
+
+function allowedRolesHandleComments(acceptRoles) {
+    return function(req, res, next) {
+        blog.Comment.forge({id: req.body.id}).fetch().then(comment => {
+            const commentOwnerId = comment.attributes.user_id;
+            const reqUserId = req.user.id;
+            accounts.Role.forge().fetchAll().then(roles => {
+                const requestRole = getRole(roles, req.user.attributes.role_id);
+                if(acceptRoles.indexOf(requestRole) == -1 || isPremium(requestRole) && commentOwnerId != reqUserId) {
+                    return res.status(403).send({rights: accessDenied});
+                } else {
+                    next();
+                }
+            })
+        })
+    }
+}
 
 function isPasswordValid(req, res, next) {
   if(req.body.password.length < 7) {
@@ -76,10 +115,11 @@ function isImageValid(req, res, next) {
 
 module.exports = {
     isPasswordValidOrEmpty,
-    getRole,
     getRoleId,
     allowedRoles,
     isPasswordValid,
     isImageValid,
-    limitedAllowedRoles
+    limitedAllowedRoles,
+    allowedRolesHandleBlog,
+    allowedRolesHandleComments
 };

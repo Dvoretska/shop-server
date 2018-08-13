@@ -21,10 +21,12 @@ router.get('/post',
 
 router.post('/comment',
   auth.isAuthenticated,
+  validation.allowedRolesHandleBlog(['admin', 'premium']),
   actions.createComment);
 
 router.post('/update-comment',
   auth.isAuthenticated,
+  validation.allowedRolesHandleComments(['admin', 'premium']),
   actions.updateComment);
 
 router.delete('/delete-comment',
@@ -33,10 +35,12 @@ router.delete('/delete-comment',
 
 router.delete('/delete-post',
   auth.isAuthenticated,
+  validation.allowedRolesHandleBlog(['admin']),
   actions.deletePost);
 
 router.post('/update-post',
   auth.isAuthenticated,
+  validation.allowedRolesHandleBlog(['admin']),
   validation.isImageValid,
   actions.updatePost);
 

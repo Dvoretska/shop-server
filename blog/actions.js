@@ -53,7 +53,7 @@ function createComment(req, res) {
     const comment = new models.Comment({
         text: req.body.text,
         user_id: req.user.attributes.id,
-        post_id: req.body.post_id
+        post_id: req.body.id
     });
     comment.save().then(() => {
         return res.status(201).send({comment: {
