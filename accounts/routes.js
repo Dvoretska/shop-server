@@ -35,9 +35,9 @@ router.delete('/delete',
 
 router.post('/update',
   auth.isAuthenticated,
+  validation.limitedAllowedRoles(['premium']),
   validation.isPasswordValidOrEmpty,
   validation.isImageValid,
-  validation.limitedAllowedRoles(['premium']),
   actions.update);
 
 module.exports = router;

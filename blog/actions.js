@@ -1,5 +1,6 @@
 const models = require('./models');
 const upload = require('../services/upload');
+const accounts = require('../accounts/models');
 const fs = require('fs');
 
 function createPost(req, res) {
@@ -27,7 +28,7 @@ function getPosts(req, res) {
 }
 
 function getPost(req, res) {
-    models.Post.forge({id: req.query.id}).fetch().then(post => {
+    models.Post.forge({id: req.query.id}).fetch({ withRelated: ['user_id'] }).then(post => {
         if(!post) {
             return res.status(404).send('Not Found');
         }
@@ -45,7 +46,6 @@ function getPost(req, res) {
             });
             return res.status(200).send({post, comments: comments})
         });
-
     });
 }
 
@@ -85,11 +85,14 @@ function deleteComment(req, res) {
 }
 
 function deletePost(req, res) {
-    models.Post.where({id: req.body.id}).destroy().then(() => {
-      return res.status(200).send({success: 'ok'})
-    }).catch((err) => {
-      return res.status(404).send({err})
-    });
+    models.Post.forge({id: req.body.id}).fetch().then(function (post) {
+        fs.unlink(`public/${post.get('image')}`, () => {});
+        models.Post.where({id: req.body.id}).destroy().then(() => {
+            return res.status(200).send({success: 'ok'})
+        }).catch((err) => {
+            return res.status(404).send({err})
+        });
+    })
 }
 
 function updatePost(req, res) {
