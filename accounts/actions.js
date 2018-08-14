@@ -110,12 +110,17 @@ function update(req, res) {
         .save({password_digest: hash}, {patch: true});
     });
   }
-  if (req.body.selectedRole) {
-    models.Role.forge({role: req.body.selectedRole}).fetch().then((role) => {
-      models.User.where({email: userEmail})
-        .save({role_id: role.id}, {patch: true});
-    })
-  }
+  models.Role.forge().fetchAll().then((roles) => {
+    const requestRole = validation.getRole(roles, req.user.attributes.role_id);
+    if (validation.isAdmin(requestRole)) {
+      for (const role of roles.models) {
+        if (role.attributes['role'] == req.body.selectedRole) {
+          models.User.where({email: userEmail})
+           .save({role_id: role.attributes['id']}, {patch: true});
+        }
+      }
+    }
+  });
   const imageResponse = req.file ? {image: req.file.filename} : {success: 'ok'};
   return res.status(200).send(imageResponse);
 }

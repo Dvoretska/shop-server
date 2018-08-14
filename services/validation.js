@@ -115,7 +115,9 @@ function isImageValid(req, res, next) {
 
 module.exports = {
     isPasswordValidOrEmpty,
+    isAdmin,
     getRoleId,
+    getRole,
     allowedRoles,
     isPasswordValid,
     isImageValid,

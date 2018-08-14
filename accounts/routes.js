@@ -26,6 +26,7 @@ router.post('/profile',
 router.post('/create',
   auth.isAuthenticated,
   validation.allowedRoles(['admin']),
+  validation.isPasswordValid,
   actions.createUser);
 
 router.delete('/delete',
