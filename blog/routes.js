@@ -31,6 +31,7 @@ router.post('/update-comment',
 
 router.delete('/delete-comment',
   auth.isAuthenticated,
+  validation.allowedRolesHandleComments(['admin', 'premium']),
   actions.deleteComment);
 
 router.delete('/delete-post',
