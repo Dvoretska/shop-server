@@ -38,6 +38,7 @@ app.use(express.static('public'));
 
 app.use('/', require('./accounts/routes'));
 app.use('/', require('./blog/routes'));
+app.use('/', require('./shop/routes'));
 
 const PORT =  3000;
 app.listen(PORT);

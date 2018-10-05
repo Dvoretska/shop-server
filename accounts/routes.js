@@ -5,7 +5,7 @@ const auth = require('../services/auth');
 
 const router = require('express').Router();
 
-router.post('/register',
+router.post('/register',  
   validation.isPasswordValid,
   actions.register);
 

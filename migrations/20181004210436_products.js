@@ -7,7 +7,7 @@ exports.up = function(knex, Promise) {
     table.text('material').notNull();
     table.integer('discount');
     table.text('description').notNull();
-    table.string('size').notNull();
+    table.string('size');
     table.bigInteger('category_id').unsigned().index().references('id').inTable('categories').onDelete('CASCADE');
   })
 };
