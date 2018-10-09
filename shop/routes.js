@@ -6,6 +6,8 @@ const auth = require('../services/auth');
 const router = require('express').Router();
 
 router.post('/create-product',
+    auth.isAuthenticated,
+    validation.allowedRoles(['admin']),
     actions.createProduct);
 
 

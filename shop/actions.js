@@ -1,9 +1,10 @@
 const models = require('./models');
 const upload = require('../services/upload');
 const shop = require('../shop/models');
-const fs = require('fs');
+
 
 function createProduct(req, res) {
+  console.log(req)
   const product = new models.Product({
     brand: req.body.brand,
     price: req.body.price,
@@ -12,7 +13,8 @@ function createProduct(req, res) {
     description: req.body.description,
     category_id: req.body.category_id
   });
-  product.save().then(() => {
+  product.save().then((product) => {
+    console.log(product.relations)
     return res.status(201).send({product});
   }).catch(err => {
     return res.status(400).send(err)
