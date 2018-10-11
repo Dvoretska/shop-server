@@ -23,4 +23,9 @@ const Image = db.Model.extend({
   }
 });
 
-module.exports = {Product, Category, Image};
+// var Promise = require('bluebird');
+var Images = db.Collection.extend({
+  model: Image
+});
+
+module.exports = {Product, Category, Image, Images};

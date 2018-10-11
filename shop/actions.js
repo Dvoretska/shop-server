@@ -3,10 +3,8 @@ const shop = require('../shop/models');
 const path = require('path');
 const fs = require('fs');
 const multipleUpload = require('../services/multipleUpload');
-const upload= require('../services/upload');
 
 function createProduct(req, res) {
-  console.log(req.files)
   const product = new models.Product({
     brand: req.body.brand,
     price: req.body.price,
@@ -15,10 +13,19 @@ function createProduct(req, res) {
     description: req.body.description,
     category_id: req.body.category_id
   });
-  product.save().then(() => {
-    return res.status(201).send({product});
-  }).catch(err => {
-    return res.status(400).send(err)
+  product.save().then((product) => {
+    let files = [];
+    for(let file of req.files) {
+      files.push({image: file.filename, product_id: product.attributes.id})
+    }
+    multipleUpload(req, res, (err) => {
+      if (err) {
+        return res.send({success: false});
+      } else {
+        var images = models.Images.forge(files);
+        images.invokeThen('save').then(() => {return res.status(201).send({success:true})});
+      }
+    })
   })
 }
 

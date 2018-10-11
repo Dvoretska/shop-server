@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const models = require('./models');
-const upload = require('../services/upload');
+const multipleUpload = require('../services/multipleUpload');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const validation = require('../services/validation');
@@ -53,16 +53,18 @@ function login(req, res) {
 
 function profile(req, res) {
   const userEmail = req.user.attributes.email;
-  if (req.file) {
+  console.log('<<<', req.files)
+  const filename = req.files[0].filename;
+  if (req.files.length) {
     models.User.forge({email: userEmail}).fetch().then(function (model) {
-        upload(req, res, (err) => {
+        multipleUpload(req, res, (err) => {
         if (err) {
           return res.send({success: false});
         } else {
           fs.unlink(`public/${model.get('image')}`, () => {
           });
           models.User.where({email: userEmail})
-            .save({image: req.file.filename}, {patch: true});
+            .save({image: filename}, {patch: true});
         }
       })
     })
@@ -73,7 +75,7 @@ function profile(req, res) {
         .save({password_digest: hash}, {patch: true});
     });
   }
-  const imageResponse = req.file ? {image: req.file.filename} : {};
+  const imageResponse = req.files.length ? {image: filename} : {};
   return res.status(200).send(imageResponse);
 }
 
@@ -90,8 +92,10 @@ function getUsersList(req, res) {
 
 function update(req, res) {
   const userEmail = req.body.email;
-  if (req.file) {
-      upload(req, res, (err) => {
+  let filename = null;
+  if (req.files.length) {
+      filename = req.files[0].filename;
+      multipleUpload(req, res, (err) => {
       if (err) {
         return res.send({success: false});
       } else {
@@ -100,7 +104,7 @@ function update(req, res) {
           });
         });
         models.User.where({email: userEmail})
-          .save({image: req.file.filename}, {patch: true});
+          .save({image: filename}, {patch: true});
       }
     })
   }
@@ -121,7 +125,7 @@ function update(req, res) {
       }
     }
   });
-  const imageResponse = req.file ? {image: req.file.filename} : {success: 'ok'};
+  const imageResponse = req.files.length ? {image: filename} : {success: 'ok'};
   return res.status(200).send(imageResponse);
 }
 

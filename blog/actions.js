@@ -1,5 +1,5 @@
 const models = require('./models');
-const upload = require('../services/upload');
+const multipleUpload = require('../services/multipleUpload');
 const accounts = require('../accounts/models');
 const fs = require('fs');
 
@@ -7,7 +7,7 @@ function createPost(req, res) {
     const post = new models.Post({
         title: req.body.title,
         content: req.body.text,
-        image: req.file.filename,
+        image: req.files[0].filename,
         user_id: req.user.attributes.id
     });
     post.save().then(() => {
@@ -99,14 +99,14 @@ function updatePost(req, res) {
     const body = req.body;
     const postId = req.body.id;
     models.Post.forge({id: postId}).fetch().then(function (post) {
-    upload(req, res, (err) => {
+    multipleUpload(req, res, (err) => {
         if (err) {
             return res.send({success: false});
         } else {
             let data = {image: post.attributes.image, content: body.content, title: body.title};
-            if (req.file) {
+            if (req.files.length) {
                 fs.unlink(`public/${post.get('image')}`, () => {});
-                data['image'] = req.file.filename
+                data['image'] = req.files[0].filename
             }
             models.Post.where({id: postId}).save(data, {patch: true})
                .then((result) => {

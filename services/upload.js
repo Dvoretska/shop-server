@@ -23,5 +23,4 @@ const fileFilter = function(req, file, callback) {
 
 let upload = multer({storage: storage, fileFilter: fileFilter}).single('file');
 
-
 module.exports = upload;

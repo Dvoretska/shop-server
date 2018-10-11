@@ -11,6 +11,7 @@ const cors = require('cors');
 const busboy = require('connect-busboy');
 const accounts = require('./accounts/models');
 const upload = require('./services/upload');
+const multipleUpload = require('./services/multipleUpload');
 
 
 const opts = {
@@ -32,7 +33,7 @@ app.use(parser.urlencoded({
 }));
 app.use(parser.json());
 app.use(busboy());
-app.use(upload);
+app.use(multipleUpload);
 app.use(express.static('public'));
 
 
