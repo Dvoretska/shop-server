@@ -1,10 +1,12 @@
 const models = require('./models');
-const upload = require('../services/upload');
 const shop = require('../shop/models');
-
+const path = require('path');
+const fs = require('fs');
+const multipleUpload = require('../services/multipleUpload');
+const upload= require('../services/upload');
 
 function createProduct(req, res) {
-  console.log(req)
+  console.log(req.files)
   const product = new models.Product({
     brand: req.body.brand,
     price: req.body.price,
@@ -13,14 +15,21 @@ function createProduct(req, res) {
     description: req.body.description,
     category_id: req.body.category_id
   });
-  product.save().then((product) => {
-    console.log(product.relations)
+  product.save().then(() => {
     return res.status(201).send({product});
   }).catch(err => {
     return res.status(400).send(err)
   })
 }
 
+function getCategories(req, res) {
+  models.Category.forge().fetchAll().then(categories => {
+    if(!categories) {
+      return res.status(404).send('Not Found');
+    }
+    return res.status(200).send(categories)
+  })
+}
 // function getPosts(req, res) {
 //   models.Post.forge().fetchAll({ columns: ['image', 'title', 'id'] }).then(posts => {
 //     if(!posts) {
@@ -32,4 +41,4 @@ function createProduct(req, res) {
 // }
 
 
-module.exports = {createProduct};
+module.exports = {createProduct, getCategories};

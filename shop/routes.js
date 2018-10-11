@@ -10,5 +10,9 @@ router.post('/create-product',
     validation.allowedRoles(['admin']),
     actions.createProduct);
 
+router.get('/categories',
+    actions.getCategories);
+
+
 
 module.exports = router;
