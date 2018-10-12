@@ -13,6 +13,8 @@ router.post('/create-product',
 router.get('/categories',
     actions.getCategories);
 
+router.get('/products',
+    actions.getProducts);
 
 
 module.exports = router;

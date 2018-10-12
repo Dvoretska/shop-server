@@ -44,7 +44,7 @@ function getPost(req, res) {
                     email: comment.relations.user_id.attributes.email
                 }
             });
-            return res.status(200).send({post, comments: comments})
+            return res.status(200).send({post, comments})
         });
     });
 }
@@ -118,5 +118,5 @@ function updatePost(req, res) {
         })
     });
 }
-    
+
 module.exports = {createPost, getPosts, getPost, createComment, updateComment, deleteComment, deletePost, updatePost};

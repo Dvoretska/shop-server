@@ -53,7 +53,6 @@ function login(req, res) {
 
 function profile(req, res) {
   const userEmail = req.user.attributes.email;
-  console.log('<<<', req.files)
   const filename = req.files[0].filename;
   if (req.files.length) {
     models.User.forge({email: userEmail}).fetch().then(function (model) {
@@ -159,5 +158,5 @@ function createUser(req, res) {
 	})
 }
 
-    
+
 module.exports = {deleteUser, createUser, getUsersList, login, register, profile, update};
