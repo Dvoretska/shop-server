@@ -62,9 +62,8 @@ function getProducts(req, res) {
             item.attributes['images'] = groups[groupName];
           }
         });
-
       });
-      return res.status(200).send({res: changedArr});
+      return res.status(200).send({products: changedArr});
     });
   })
 

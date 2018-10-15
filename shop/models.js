@@ -23,7 +23,6 @@ const Image = db.Model.extend({
   }
 });
 
-// var Promise = require('bluebird');
 var Images = db.Collection.extend({
   model: Image
 });
