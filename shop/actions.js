@@ -71,8 +71,31 @@ function getProducts(req, res) {
       return res.status(200).send({products: changedArr});
     });
   })
+}
 
+function getProduct(req, res) {
+  models.Product.forge({id: req.params.id}).fetch({
+    withRelated: ['category_id']}).then(product => {
+    if (!product) {
+      return res.status(404).send('Not Found');
+    }
+    models.Image.forge().fetchAll({withRelated: 'product'}).then(result => {
+      var groups = {};
+      var groupName;
+      result.map((img) => {
+        groupName = img.attributes.product_id;
+        if (!groups[groupName]) {
+          groups[groupName] = [];
+        }
+        groups[groupName].push(img.attributes.image);
+          if(product.id == groupName) {
+            product.attributes['images'] = groups[groupName];
+          }
+      });
+      return res.status(200).send({product});
+    });
+  })
 }
 
 
-module.exports = {createProduct, getCategories, getProducts};
+module.exports = {createProduct, getCategories, getProducts, getProduct};
