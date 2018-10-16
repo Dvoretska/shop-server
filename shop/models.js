@@ -6,7 +6,7 @@ const db = bookshelf(knexDb);
 
 const Product = db.Model.extend({
   tableName: 'products',
-  category: function() {
+  category_id: function() {
     return this.belongsTo(Category, 'category_id');
   }
 });

@@ -14,7 +14,7 @@ function createProduct(req, res) {
     category_id: req.body.category_id
   });
   product.save().then(() => {
-    models.Product.forge({id: product.id}).fetch({withRelated: ['category']}).then((product) => {
+    models.Product.forge({id: product.id}).fetch({withRelated: ['category_id']}).then((product) => {
       let files = [];
       for(let file of req.files) {
         files.push({image: file.filename, product_id: product.attributes.id})
@@ -43,7 +43,12 @@ function getCategories(req, res) {
 }
 
 function getProducts(req, res) {
-  models.Product.forge().fetchAll().then(products => {
+  let skip = req.query.skip || 0;
+  let limit = req.query.limit || 3;
+  models.Product.forge().query(function(qb) {
+    qb.offset(skip).limit(limit);
+  }).fetchAll({
+    withRelated: ['category_id']}).then(products => {
     if (!products) {
       return res.status(404).send('Not Found');
     }
