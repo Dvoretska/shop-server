@@ -46,31 +46,37 @@ function getProducts(req, res) {
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
   models.Product.forge().query(function(qb) {
-    qb.offset(skip).limit(limit);
-  }).fetchAll({
-    withRelated: ['category_id']}).then(products => {
-    if (!products) {
-      return res.status(404).send('Not Found');
-    }
-    models.Image.forge().fetchAll({withRelated: 'product'}).then(result => {
-      var groups = {};
-      var changedArr;
-      var groupName;
-      result.map((img) => {
-        groupName = img.attributes.product_id;
-        if (!groups[groupName]) {
-          groups[groupName] = [];
-        }
-        groups[groupName].push(img.attributes.image);
-        changedArr = products.forEach((item) => {
-          if(item.id == groupName) {
-            item.attributes['images'] = groups[groupName];
+    qb.count('id');
+  }).fetchAll().then((count)=> {
+    models.Product.forge().query(function(qb) {
+      qb.offset(skip).limit(limit);
+    }).fetchAll({
+      withRelated: ['category_id']}).then(products => {
+      if (!products) {
+        return res.status(404).send('Not Found');
+      }
+      models.Image.forge().fetchAll({withRelated: 'product'}).then(result => {
+        let groups = {};
+        let changedArr;
+        let groupName;
+        result.map((img) => {
+          groupName = img.attributes.product_id;
+          if (!groups[groupName]) {
+            groups[groupName] = [];
           }
+          groups[groupName].push(img.attributes.image);
+          changedArr = products.forEach((item) => {
+            if(+item.id === +groupName) {
+              item.attributes['images'] = groups[groupName];
+            }
+          });
         });
+        return res.status(200).send({'products': changedArr, 'totalAmount': count});
       });
-      return res.status(200).send({products: changedArr});
-    });
-  })
+    })
+    }
+  )
+
 }
 
 function getProduct(req, res) {
