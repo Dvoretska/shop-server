@@ -19,5 +19,8 @@ router.get('/products/',
 router.get('/product/:id',
     actions.getProduct);
 
+router.post('/add-to-cart',
+    auth.isAuthenticated,
+    actions.addProductToCart);
 
 module.exports = router;

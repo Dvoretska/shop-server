@@ -103,5 +103,19 @@ function getProduct(req, res) {
   })
 }
 
+function addProductToCart(req, res) {
+  const cart = new models.Cart({
+    count: req.body.count || 1,
+    product_id: req.body.product_id,
+    user_id: req.user.attributes.id
+  });
+  cart.save().then((cart) => {
+    return res.status(201).send({success: cart});
+  }).catch(err => {
+    return res.status(400).send(err)
+  })
+}
 
-module.exports = {createProduct, getCategories, getProducts, getProduct};
+
+
+module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart};
