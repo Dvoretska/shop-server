@@ -105,8 +105,9 @@ function getProduct(req, res) {
 
 function addProductToCart(req, res) {
   const cart = new models.Cart({
-    count: req.body.count || 1,
+    quantity: req.body.quantity || 1,
     product_id: req.body.product_id,
+    size: req.body.size,
     user_id: req.user.attributes.id
   });
   cart.save().then((cart) => {
