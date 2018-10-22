@@ -106,7 +106,8 @@ function getProduct(req, res) {
 function addProductToCart(req, res) {
   models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch().then((model) => {
     if(model && model.attributes.size === req.body.size) {
-      models.Cart.where({product_id: req.body.product_id, size: model.attributes.size}).save({quantity: req.body.quantity}, {patch: true})
+      models.Cart.where({product_id: req.body.product_id, size: model.attributes.size})
+        .save({quantity: req.body.quantity + model.attributes.quantity}, {patch: true})
         .then((result) => {
           return res.status(201).send({success: result});
         }).catch(err => {
