@@ -104,19 +104,29 @@ function getProduct(req, res) {
 }
 
 function addProductToCart(req, res) {
-  const cart = new models.Cart({
-    quantity: req.body.quantity || 1,
-    product_id: req.body.product_id,
-    size: req.body.size,
-    user_id: req.user.attributes.id
-  });
-  cart.save().then((cart) => {
-    return res.status(201).send({success: cart});
-  }).catch(err => {
-    return res.status(400).send(err)
+  models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch().then((model) => {
+    if(model && model.attributes.size === req.body.size) {
+      models.Cart.where({product_id: req.body.product_id, size: model.attributes.size}).save({quantity: req.body.quantity}, {patch: true})
+        .then((result) => {
+          return res.status(201).send({success: result});
+        }).catch(err => {
+          return res.status(400).send(err)
+        })
+    } else {
+      const cart = new models.Cart({
+        quantity: req.body.quantity || 1,
+        product_id: req.body.product_id,
+        size: req.body.size,
+        user_id: req.user.attributes.id
+      });
+      cart.save().then((cart) => {
+        return res.status(201).send({success: cart});
+      }).catch(err => {
+        return res.status(400).send(err)
+      })
+    }
   })
 }
-
 
 
 module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart};
