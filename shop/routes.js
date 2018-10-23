@@ -23,4 +23,9 @@ router.post('/add-to-cart',
     auth.isAuthenticated,
     actions.addProductToCart);
 
+router.get('/cart',
+    auth.isAuthenticated,
+    actions.getCart);
+
+
 module.exports = router;

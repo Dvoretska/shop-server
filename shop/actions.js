@@ -76,7 +76,6 @@ function getProducts(req, res) {
     })
     }
   )
-
 }
 
 function getProduct(req, res) {
@@ -94,7 +93,7 @@ function getProduct(req, res) {
           groups[groupName] = [];
         }
         groups[groupName].push(img.attributes.image);
-          if(product.id == groupName) {
+          if(product.id === +groupName) {
             product.attributes['images'] = groups[groupName];
           }
       });
@@ -109,7 +108,7 @@ function addProductToCart(req, res) {
       models.Cart.where({product_id: req.body.product_id, size: model.attributes.size})
         .save({quantity: req.body.quantity + model.attributes.quantity}, {patch: true})
         .then((result) => {
-          return res.status(201).send({success: result});
+          return res.status(201).send({productQty: result});
         }).catch(err => {
           return res.status(400).send(err)
         })
@@ -120,8 +119,8 @@ function addProductToCart(req, res) {
         size: req.body.size,
         user_id: req.user.attributes.id
       });
-      cart.save().then((cart) => {
-        return res.status(201).send({success: cart});
+      cart.save().then(() => {
+        return res.status(201).send({productQty: {quantity: 1}});
       }).catch(err => {
         return res.status(400).send(err)
       })
@@ -130,4 +129,56 @@ function addProductToCart(req, res) {
 }
 
 
-module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart};
+function getCart(req, res) {
+  models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
+    if(!result) {
+      return res.status(404).send('Not Found');
+    }
+    models.Category.forge().fetchAll().then(categories => {
+      let cartArr = [];
+      let totalAmount = 0;
+      let totalNumberOfProducts = 0;
+      result.map((item) => {
+        cart = {};
+        let category = categories.find(o =>  o.id == item.relations.product_id.attributes.category_id);
+        cart['category'] = category.attributes.category;
+        cart['size'] = item.attributes.size;
+        cart['product_id'] = item.relations.product_id.attributes.id;
+        cart['quantity'] = item.attributes.quantity;
+        cart['brand'] = item.relations.product_id.attributes.brand;
+        cart['price'] = item.relations.product_id.attributes.price;
+        if(item.relations.product_id.attributes.discount) {
+          cart['discount'] = item.relations.product_id.attributes.discount;
+          cart['amount'] = cart['quantity'] * cart['discount'];
+        } else {
+          cart['amount'] = cart['quantity'] * cart['price'];
+        }
+        cartArr.push(cart);
+      });
+        models.Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+          let groups = {};
+          let groupName;
+          images.map((img) => {
+            groupName = img.attributes.product_id;
+            if (!groups[groupName]) {
+              groups[groupName] = [];
+            }
+            groups[groupName].push(img.attributes.image);
+            cartArr.forEach((item) => {
+              if(+item.product_id === +groupName) {
+                item['images'] = groups[groupName];
+              }
+            });
+          });
+        for (let i = 0; i < cartArr.length; i++) {
+          totalAmount += cartArr[i].amount;
+          totalNumberOfProducts += cartArr[i].quantity;
+        }
+        return res.status(200).send({cart: cartArr, totalAmount, totalNumberOfProducts})
+      });
+    })
+  })
+}
+
+
+module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart, getCart};
