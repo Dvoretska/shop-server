@@ -10,7 +10,6 @@ const parser = require('body-parser');
 const cors = require('cors');
 const busboy = require('connect-busboy');
 const accounts = require('./accounts/models');
-const upload = require('./services/upload');
 const multipleUpload = require('./services/multipleUpload');
 
 

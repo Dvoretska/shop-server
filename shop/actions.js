@@ -2,7 +2,7 @@ const models = require('./models');
 const path = require('path');
 const fs = require('fs');
 const multipleUpload = require('../services/multipleUpload');
-var _ = require('lodash');
+const handleImagesTable = require('../services/handleImagesTable');
 
 function createProduct(req, res) {
   const product = new models.Product({
@@ -55,25 +55,11 @@ function getProducts(req, res) {
       if (!products) {
         return res.status(404).send('Not Found');
       }
-      models.Image.forge().fetchAll({withRelated: 'product'}).then(result => {
-        let groups = {};
-        let changedArr;
-        let groupName;
-        result.map((img) => {
-          groupName = img.attributes.product_id;
-          if (!groups[groupName]) {
-            groups[groupName] = [];
-          }
-          groups[groupName].push(img.attributes.image);
-          changedArr = products.forEach((item) => {
-            if(+item.id === +groupName) {
-              item.attributes['images'] = groups[groupName];
-            }
-          });
+      models.Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+        handleImagesTable.addImagesToResult(images, products, 'id', 'attributes');
+          return res.status(200).send({'products': products, 'totalAmount': count});
         });
-        return res.status(200).send({'products': changedArr, 'totalAmount': count});
-      });
-    })
+      })
     }
   )
 }
@@ -84,20 +70,9 @@ function getProduct(req, res) {
     if (!product) {
       return res.status(404).send('Not Found');
     }
-    models.Image.forge().fetchAll({withRelated: 'product'}).then(result => {
-      var groups = {};
-      var groupName;
-      result.map((img) => {
-        groupName = img.attributes.product_id;
-        if (!groups[groupName]) {
-          groups[groupName] = [];
-        }
-        groups[groupName].push(img.attributes.image);
-          if(product.id === +groupName) {
-            product.attributes['images'] = groups[groupName];
-          }
-      });
-      return res.status(200).send({product});
+    models.Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+      handleImagesTable.addImagesToResult(images, product, 'id', 'attributes');
+      return res.status(200).send(product);
     });
   })
 }
@@ -139,8 +114,8 @@ function getCart(req, res) {
       let totalAmount = 0;
       let totalNumberOfProducts = 0;
       result.map((item) => {
-        cart = {};
-        let category = categories.find(o =>  o.id == item.relations.product_id.attributes.category_id);
+        var cart = {};
+        let category = categories.find(o =>  o.id === +item.relations.product_id.attributes.category_id);
         cart['category'] = category.attributes.category;
         cart['size'] = item.attributes.size;
         cart['product_id'] = item.relations.product_id.attributes.id;
@@ -155,27 +130,14 @@ function getCart(req, res) {
         }
         cartArr.push(cart);
       });
-        models.Image.forge().fetchAll({withRelated: 'product'}).then(images => {
-          let groups = {};
-          let groupName;
-          images.map((img) => {
-            groupName = img.attributes.product_id;
-            if (!groups[groupName]) {
-              groups[groupName] = [];
-            }
-            groups[groupName].push(img.attributes.image);
-            cartArr.forEach((item) => {
-              if(+item.product_id === +groupName) {
-                item['images'] = groups[groupName];
-              }
-            });
-          });
+      models.Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+        handleImagesTable.addImagesToResult(images, cartArr, 'product_id');
         for (let i = 0; i < cartArr.length; i++) {
           totalAmount += cartArr[i].amount;
           totalNumberOfProducts += cartArr[i].quantity;
         }
         return res.status(200).send({cart: cartArr, totalAmount, totalNumberOfProducts})
-      });
+      })
     })
   })
 }
