@@ -78,12 +78,19 @@ function getProduct(req, res) {
 }
 
 function addProductToCart(req, res) {
-  models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch().then((model) => {
+  models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((model) => {
     if(model && model.attributes.size === req.body.size) {
+      let quantity = req.body.quantity + model.attributes.quantity;
       models.Cart.where({product_id: req.body.product_id, size: model.attributes.size})
-        .save({quantity: req.body.quantity + model.attributes.quantity}, {patch: true})
+        .save({quantity: quantity}, {patch: true})
         .then((result) => {
-          return res.status(201).send({productQty: result});
+          let amount = 0;
+          if(model.relations.product_id.attributes.discount) {
+            amount = model.relations.product_id.attributes.discount * quantity;
+          } else {
+            amount = model.relations.product_id.attributes.price * quantity;
+          }
+          return res.status(201).send({product: model, productQty: result, amount: amount});
         }).catch(err => {
           return res.status(400).send(err)
         })
@@ -105,7 +112,8 @@ function addProductToCart(req, res) {
 
 
 function getCart(req, res) {
-  models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
+  models.Cart.where({user_id: req.user.attributes.id}).query('orderBy', 'quantity', 'desc').fetchAll({withRelated: ['product_id']})
+  .then(result => {
     if(!result) {
       return res.status(404).send('Not Found');
     }
@@ -142,5 +150,31 @@ function getCart(req, res) {
   })
 }
 
+function getTotalAmount(req, res) {
+  models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
+    if (!result) {
+      return res.status(404).send('Not Found');
+    }
+    let cartArr = [];
+    let totalAmount = 0;
+    result.map((item) => {
+      var cart = {};
+      cart['quantity'] = item.attributes.quantity;
+      cart['price'] = item.relations.product_id.attributes.price;
+      if(item.relations.product_id.attributes.discount) {
+        cart['discount'] = item.relations.product_id.attributes.discount;
+        cart['amount'] = cart['quantity'] * cart['discount'];
+      } else {
+        cart['amount'] = cart['quantity'] * cart['price'];
+      }
+      cartArr.push(cart);
+      for (let i = 0; i < cartArr.length; i++) {
+        totalAmount += cartArr[i].amount;
+      }
+    });
+    return res.status(200).send({totalAmount})
+  })
+}
 
-module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart, getCart};
+
+module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart, getCart, getTotalAmount};
