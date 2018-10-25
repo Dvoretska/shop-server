@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const multipleUpload = require('../services/multipleUpload');
 const handleImagesTable = require('../services/handleImagesTable');
+const calcTotalAmount = require('../services/calcTotalAmount');
 
 function createProduct(req, res) {
   const product = new models.Product({
@@ -78,22 +79,25 @@ function getProduct(req, res) {
 }
 
 function addProductToCart(req, res) {
-  models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((model) => {
-    if(model && model.attributes.size === req.body.size) {
-      let quantity = req.body.quantity + model.attributes.quantity;
-      models.Cart.where({product_id: req.body.product_id, size: model.attributes.size})
+  models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((product) => {
+    if(product && product.attributes.size === req.body.size) {
+      let quantity = req.body.quantity + product.attributes.quantity;
+      models.Cart.where({product_id: req.body.product_id, size: product.attributes.size})
         .save({quantity: quantity}, {patch: true})
         .then((result) => {
           let amount = 0;
-          if(model.relations.product_id.attributes.discount) {
-            amount = model.relations.product_id.attributes.discount * quantity;
+          if(product.relations.product_id.attributes.discount) {
+            amount = product.relations.product_id.attributes.discount * quantity;
           } else {
-            amount = model.relations.product_id.attributes.price * quantity;
+            amount = product.relations.product_id.attributes.price * quantity;
           }
-          return res.status(201).send({product: model, productQty: result, amount: amount});
-        }).catch(err => {
-          return res.status(400).send(err)
-        })
+          models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(total => {
+            let totalAmount = calcTotalAmount.calcTotalAmount(total);
+            return res.status(201).send({product, productQty: result, amount, totalAmount});
+          }).catch(err => {
+            return res.status(400).send(err)
+          })
+      });
     } else {
       const cart = new models.Cart({
         quantity: req.body.quantity || 1,
@@ -102,9 +106,12 @@ function addProductToCart(req, res) {
         user_id: req.user.attributes.id
       });
       cart.save().then(() => {
-        return res.status(201).send({productQty: {quantity: 1}});
-      }).catch(err => {
-        return res.status(400).send(err)
+        models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
+          let totalAmount = calcTotalAmount.calcTotalAmount(result);
+          return res.status(201).send({productQty: {quantity: 1}, totalAmount});
+        }).catch(err => {
+          return res.status(400).send(err)
+        })
       })
     }
   })
@@ -113,15 +120,14 @@ function addProductToCart(req, res) {
 
 function getCart(req, res) {
   models.Cart.where({user_id: req.user.attributes.id}).query('orderBy', 'quantity', 'desc').fetchAll({withRelated: ['product_id']})
-  .then(result => {
-    if(!result) {
+  .then(products => {
+    if(!products) {
       return res.status(404).send('Not Found');
     }
     models.Category.forge().fetchAll().then(categories => {
       let cartArr = [];
-      let totalAmount = 0;
       let totalNumberOfProducts = 0;
-      result.map((item) => {
+      products.map((item) => {
         var cart = {};
         let category = categories.find(o =>  o.id === +item.relations.product_id.attributes.category_id);
         cart['category'] = category.attributes.category;
@@ -141,9 +147,9 @@ function getCart(req, res) {
       models.Image.forge().fetchAll({withRelated: 'product'}).then(images => {
         handleImagesTable.addImagesToResult(images, cartArr, 'product_id');
         for (let i = 0; i < cartArr.length; i++) {
-          totalAmount += cartArr[i].amount;
           totalNumberOfProducts += cartArr[i].quantity;
         }
+        let totalAmount = calcTotalAmount.calcTotalAmount(products);
         return res.status(200).send({cart: cartArr, totalAmount, totalNumberOfProducts})
       })
     })
