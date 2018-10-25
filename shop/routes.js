@@ -27,8 +27,5 @@ router.get('/cart',
     auth.isAuthenticated,
     actions.getCart);
 
-router.get('/amount',
-    auth.isAuthenticated,
-    actions.getTotalAmount);
 
 module.exports = router;

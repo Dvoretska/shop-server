@@ -19,4 +19,18 @@ function calcTotalAmount(result) {
   return totalAmount;
 }
 
-module.exports = {calcTotalAmount};
+function calcTotalNumberOfProducts(result) {
+  let cartArr = [];
+  let totalNumberOfProducts = 0;
+  result.map((item) => {
+    let cart = {};
+    cart['quantity'] = item.attributes.quantity;
+    cartArr.push(cart);
+  });
+  for (let i = 0; i < cartArr.length; i++) {
+    totalNumberOfProducts += cartArr[i].quantity;
+  }
+  return totalNumberOfProducts;
+}
+
+module.exports = {calcTotalAmount, calcTotalNumberOfProducts};

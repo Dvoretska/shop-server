@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const multipleUpload = require('../services/multipleUpload');
 const handleImagesTable = require('../services/handleImagesTable');
-const calcTotalAmount = require('../services/calcTotalAmount');
+const summary = require('../services/summary');
 
 function createProduct(req, res) {
   const product = new models.Product({
@@ -92,8 +92,9 @@ function addProductToCart(req, res) {
             amount = product.relations.product_id.attributes.price * quantity;
           }
           models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(total => {
-            let totalAmount = calcTotalAmount.calcTotalAmount(total);
-            return res.status(201).send({product, productQty: result, amount, totalAmount});
+            let totalAmount = summary.calcTotalAmount(total);
+            let totalNumberOfProducts = summary.calcTotalNumberOfProducts(total);
+            return res.status(201).send({product, productQty: result, amount, totalAmount, totalNumberOfProducts});
           }).catch(err => {
             return res.status(400).send(err)
           })
@@ -107,8 +108,9 @@ function addProductToCart(req, res) {
       });
       cart.save().then(() => {
         models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
-          let totalAmount = calcTotalAmount.calcTotalAmount(result);
-          return res.status(201).send({productQty: {quantity: 1}, totalAmount});
+          let totalAmount = summary.calcTotalAmount(result);
+          let totalNumberOfProducts = summary.calcTotalNumberOfProducts(result);
+          return res.status(201).send({product, productQty: {quantity: 1}, totalAmount, totalNumberOfProducts});
         }).catch(err => {
           return res.status(400).send(err)
         })
@@ -116,7 +118,6 @@ function addProductToCart(req, res) {
     }
   })
 }
-
 
 function getCart(req, res) {
   models.Cart.where({user_id: req.user.attributes.id}).query('orderBy', 'quantity', 'desc').fetchAll({withRelated: ['product_id']})
@@ -126,7 +127,6 @@ function getCart(req, res) {
     }
     models.Category.forge().fetchAll().then(categories => {
       let cartArr = [];
-      let totalNumberOfProducts = 0;
       products.map((item) => {
         var cart = {};
         let category = categories.find(o =>  o.id === +item.relations.product_id.attributes.category_id);
@@ -146,41 +146,14 @@ function getCart(req, res) {
       });
       models.Image.forge().fetchAll({withRelated: 'product'}).then(images => {
         handleImagesTable.addImagesToResult(images, cartArr, 'product_id');
-        for (let i = 0; i < cartArr.length; i++) {
-          totalNumberOfProducts += cartArr[i].quantity;
-        }
-        let totalAmount = calcTotalAmount.calcTotalAmount(products);
+        let totalNumberOfProducts = summary.calcTotalNumberOfProducts(products);
+        let totalAmount = summary.calcTotalAmount(products);
         return res.status(200).send({cart: cartArr, totalAmount, totalNumberOfProducts})
       })
     })
   })
 }
 
-function getTotalAmount(req, res) {
-  models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
-    if (!result) {
-      return res.status(404).send('Not Found');
-    }
-    let cartArr = [];
-    let totalAmount = 0;
-    result.map((item) => {
-      var cart = {};
-      cart['quantity'] = item.attributes.quantity;
-      cart['price'] = item.relations.product_id.attributes.price;
-      if(item.relations.product_id.attributes.discount) {
-        cart['discount'] = item.relations.product_id.attributes.discount;
-        cart['amount'] = cart['quantity'] * cart['discount'];
-      } else {
-        cart['amount'] = cart['quantity'] * cart['price'];
-      }
-      cartArr.push(cart);
-      for (let i = 0; i < cartArr.length; i++) {
-        totalAmount += cartArr[i].amount;
-      }
-    });
-    return res.status(200).send({totalAmount})
-  })
-}
 
 
-module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart, getCart, getTotalAmount};
+module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart, getCart};
