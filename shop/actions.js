@@ -80,7 +80,7 @@ function getProduct(req, res) {
 
 function addProductToCart(req, res) {
   models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((product) => {
-    if(product && product.attributes.size === req.body.size) {
+    if(product && product.attributes.size == req.body.size) {
       let quantity = req.body.quantity + product.attributes.quantity;
       models.Cart.where({product_id: req.body.product_id, size: product.attributes.size})
         .save({quantity: quantity}, {patch: true})
@@ -106,7 +106,7 @@ function addProductToCart(req, res) {
         size: req.body.size,
         user_id: req.user.attributes.id
       });
-      cart.save().then(() => {
+      cart.save().then((product) => {
         models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
           let totalAmount = summary.calcTotalAmount(result);
           let totalNumberOfProducts = summary.calcTotalNumberOfProducts(result);
@@ -154,6 +154,41 @@ function getCart(req, res) {
   })
 }
 
+function decreaseQuantityOfProductInCart(req, res) {
+  models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((product) => {
+      let quantity = +product.attributes.quantity - 1;
+      models.Cart.where({product_id: req.body.product_id, size: product.attributes.size})
+          .save({quantity: quantity}, {patch: true})
+          .then((result) => {
+            let amount = 0;
+            if(product.relations.product_id.attributes.discount) {
+              amount = product.relations.product_id.attributes.discount * quantity;
+            } else {
+              amount = product.relations.product_id.attributes.price * quantity;
+            }
+            models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(total => {
+              let totalAmount = summary.calcTotalAmount(total);
+              let totalNumberOfProducts = summary.calcTotalNumberOfProducts(total);
+              return res.status(201).send({product, productQty: result, amount, totalAmount, totalNumberOfProducts});
+            }).catch(err => {
+              return res.status(400).send(err)
+            })
+          });
+  })
+}
+
+function deleteProductFromCart(req, res) {
+  models.Cart.where({product_id: req.body.product_id, size: req.body.size}).destroy().then((product) => {
+    models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
+      let totalAmount = summary.calcTotalAmount(result);
+      let totalNumberOfProducts = summary.calcTotalNumberOfProducts(result);
+      return res.status(201).send({product_id: req.body.product_id, size: req.body.size,totalAmount, totalNumberOfProducts});
+    }).catch(err => {
+      return res.status(400).send(err)
+    })
+  })
+}
 
 
-module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart, getCart};
+
+module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart, getCart, decreaseQuantityOfProductInCart, deleteProductFromCart};

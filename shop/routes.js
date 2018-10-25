@@ -27,5 +27,13 @@ router.get('/cart',
     auth.isAuthenticated,
     actions.getCart);
 
+router.delete('/delete-from-cart',
+    auth.isAuthenticated,
+    actions.deleteProductFromCart);
+
+router.post('/update-cart',
+    auth.isAuthenticated,
+    actions.decreaseQuantityOfProductInCart);
+
 
 module.exports = router;
