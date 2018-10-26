@@ -79,7 +79,7 @@ function getProduct(req, res) {
 }
 
 function addProductToCart(req, res) {
-  models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((product) => {
+  models.Cart.forge({product_id: req.body.product_id, size: req.body.size, user_id: req.user.attributes.id}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((product) => {
     if(product && product.attributes.size == req.body.size) {
       let quantity = req.body.quantity + product.attributes.quantity;
       models.Cart.where({product_id: req.body.product_id, size: product.attributes.size})
@@ -155,7 +155,7 @@ function getCart(req, res) {
 }
 
 function decreaseQuantityOfProductInCart(req, res) {
-  models.Cart.forge({product_id: req.body.product_id, size: req.body.size}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((product) => {
+  models.Cart.forge({product_id: req.body.product_id, size: req.body.size, user_id: req.user.attributes.id}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((product) => {
       let quantity = +product.attributes.quantity - 1;
       models.Cart.where({product_id: req.body.product_id, size: product.attributes.size})
           .save({quantity: quantity}, {patch: true})
@@ -178,7 +178,7 @@ function decreaseQuantityOfProductInCart(req, res) {
 }
 
 function deleteProductFromCart(req, res) {
-  models.Cart.where({product_id: req.body.product_id, size: req.body.size}).destroy().then((product) => {
+  models.Cart.where({product_id: req.body.product_id, size: req.body.size, user_id: req.user.attributes.id}).destroy().then((product) => {
     models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
       let totalAmount = summary.calcTotalAmount(result);
       let totalNumberOfProducts = summary.calcTotalNumberOfProducts(result);
@@ -198,6 +198,35 @@ function getTotalNumberOfProducts(req, res) {
   })
 }
 
+function addProductToWishlist(req, res) {
+  const wishlistItem = new models.Wishlist({
+    product_id: req.body.product_id,
+    user_id: req.user.attributes.id
+  });
+  wishlistItem.save().then(() => {
+    models.Wishlist.where({user_id: req.user.attributes.id}).query(function(qb) {
+      qb.count('id');
+    }).fetch().then((count) => {
+      models.Wishlist.where({user_id: req.user.attributes.id}).fetch({withRelated: ['product_id']}).then((item) => {
+        return res.status(201).send({item, count});
+      }).catch(err => {
+        return res.status(400).send(err)
+      })
+    })
+  })
+}
+
+function deleteProductFromWishlist(req, res) {
+  models.Wishlist.where({id: req.body.id}).destroy().then(() => {
+    models.Wishlist.where({user_id: req.user.attributes.id}).query(function(qb) {
+      qb.count('id');
+    }).fetchAll().then(count => {
+      return res.status(201).send(count);
+    }).catch(err => {
+      return res.status(400).send(err)
+    })
+  })
+}
 
 
 module.exports = {createProduct,
@@ -208,4 +237,6 @@ module.exports = {createProduct,
                   getCart,
                   decreaseQuantityOfProductInCart,
                   deleteProductFromCart,
-                  getTotalNumberOfProducts};
+                  getTotalNumberOfProducts,
+                  addProductToWishlist,
+                  deleteProductFromWishlist};

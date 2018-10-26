@@ -39,5 +39,12 @@ router.get('/number-products',
     auth.isAuthenticated,
     actions.getTotalNumberOfProducts);
 
+router.post('/add-to-wishlist',
+    auth.isAuthenticated,
+    actions.addProductToWishlist);
+
+router.delete('/delete-from-wishlist',
+    auth.isAuthenticated,
+    actions.deleteProductFromWishlist);
 
 module.exports = router;

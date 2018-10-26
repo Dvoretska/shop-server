@@ -23,7 +23,7 @@ const Image = db.Model.extend({
   }
 });
 
-var Images = db.Collection.extend({
+const Images = db.Collection.extend({
   model: Image
 });
 
@@ -37,4 +37,14 @@ const Cart = db.Model.extend({
   },
 });
 
-module.exports = {Product, Category, Image, Images, Cart};
+const Wishlist = db.Model.extend({
+  tableName: 'wishlist',
+  user_id: function() {
+    return this.belongsTo(accounts.User, 'user_id');
+  },
+  product_id: function() {
+    return this.belongsTo(Product, 'product_id');
+  },
+});
+
+module.exports = {Product, Category, Image, Images, Cart, Wishlist};
