@@ -189,6 +189,23 @@ function deleteProductFromCart(req, res) {
   })
 }
 
+function getTotalNumberOfProducts(req, res) {
+  models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(total => {
+    let totalNumberOfProducts = summary.calcTotalNumberOfProducts(total);
+    return res.status(201).send({totalNumberOfProducts});
+  }).catch(err => {
+    return res.status(400).send(err)
+  })
+}
 
 
-module.exports = {createProduct, getCategories, getProducts, getProduct, addProductToCart, getCart, decreaseQuantityOfProductInCart, deleteProductFromCart};
+
+module.exports = {createProduct,
+                  getCategories,
+                  getProducts,
+                  getProduct,
+                  addProductToCart,
+                  getCart,
+                  decreaseQuantityOfProductInCart,
+                  deleteProductFromCart,
+                  getTotalNumberOfProducts};

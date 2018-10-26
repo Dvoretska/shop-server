@@ -35,5 +35,9 @@ router.post('/update-cart',
     auth.isAuthenticated,
     actions.decreaseQuantityOfProductInCart);
 
+router.get('/number-products',
+    auth.isAuthenticated,
+    actions.getTotalNumberOfProducts);
+
 
 module.exports = router;
