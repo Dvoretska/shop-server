@@ -79,10 +79,13 @@ function getProduct(req, res) {
 }
 
 function addProductToCart(req, res) {
-  models.Cart.forge({product_id: req.body.product_id, size: req.body.size, user_id: req.user.attributes.id}).query('orderBy', 'id', 'desc').fetch({withRelated: ['product_id']}).then((product) => {
+  models.Cart.forge({product_id: req.body.product_id, size: req.body.size, user_id: req.user.attributes.id})
+    .query('orderBy', 'id', 'desc')
+    .fetch({withRelated: ['product_id']})
+    .then((product) => {
     if(product && product.attributes.size == req.body.size) {
       let quantity = req.body.quantity + product.attributes.quantity;
-      models.Cart.where({product_id: req.body.product_id, size: product.attributes.size})
+      models.Cart.where({product_id: req.body.product_id, size: product.attributes.size, user_id: req.user.attributes.id})
         .save({quantity: quantity}, {patch: true})
         .then((result) => {
           let amount = 0;
@@ -120,8 +123,10 @@ function addProductToCart(req, res) {
 }
 
 function getCart(req, res) {
-  models.Cart.where({user_id: req.user.attributes.id}).query('orderBy', 'quantity', 'desc').fetchAll({withRelated: ['product_id']})
-  .then(products => {
+  models.Cart.where({user_id: req.user.attributes.id})
+    .query('orderBy', 'quantity', 'desc')
+    .fetchAll({withRelated: ['product_id']})
+    .then(products => {
     if(!products) {
       return res.status(404).send('Not Found');
     }
@@ -131,6 +136,7 @@ function getCart(req, res) {
         var cart = {};
         let category = categories.find(o =>  o.id === +item.relations.product_id.attributes.category_id);
         cart['category'] = category.attributes.category;
+        cart['id'] = item.attributes.id;
         cart['size'] = item.attributes.size;
         cart['product_id'] = item.relations.product_id.attributes.id;
         cart['quantity'] = item.attributes.quantity;
@@ -178,11 +184,11 @@ function decreaseQuantityOfProductInCart(req, res) {
 }
 
 function deleteProductFromCart(req, res) {
-  models.Cart.where({product_id: req.body.product_id, size: req.body.size, user_id: req.user.attributes.id}).destroy().then((product) => {
+  models.Cart.where({id: req.body.id, user_id: req.user.attributes.id}).destroy().then((product) => {
     models.Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
       let totalAmount = summary.calcTotalAmount(result);
       let totalNumberOfProducts = summary.calcTotalNumberOfProducts(result);
-      return res.status(201).send({product_id: req.body.product_id, size: req.body.size,totalAmount, totalNumberOfProducts});
+      return res.status(201).send({id: req.body.id, totalAmount, totalNumberOfProducts});
     }).catch(err => {
       return res.status(400).send(err)
     })
