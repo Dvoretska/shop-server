@@ -47,4 +47,8 @@ router.delete('/delete-from-wishlist',
     auth.isAuthenticated,
     actions.deleteProductFromWishlist);
 
+router.get('/wishlist',
+    auth.isAuthenticated,
+    actions.getWishlist);
+
 module.exports = router;

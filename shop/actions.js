@@ -207,7 +207,8 @@ function addProductToWishlist(req, res) {
     models.Wishlist.where({user_id: req.user.attributes.id}).query(function(qb) {
       qb.count('id');
     }).fetch().then((count) => {
-      models.Wishlist.where({user_id: req.user.attributes.id}).fetch({withRelated: ['product_id']}).then((item) => {
+      models.Wishlist.where({user_id: req.user.attributes.id, product_id: req.body.product_id}).fetch({withRelated: ['product_id']}).then((item) => {
+        console.log(item.attributes.id)
         return res.status(201).send({item, count});
       }).catch(err => {
         return res.status(400).send(err)
@@ -228,6 +229,35 @@ function deleteProductFromWishlist(req, res) {
   })
 }
 
+function getWishlist(req, res) {
+  models.Wishlist.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']})
+    .then(items => {
+      if(!items) {
+        return res.status(404).send('Not Found');
+      }
+      models.Category.forge().fetchAll().then(categories => {
+        let wishlistArr = [];
+        items.map((item) => {
+          var wishlistObj = {};
+          let category = categories.find(o =>  o.id === +item.relations.product_id.attributes.category_id);
+          wishlistObj['category'] = category.attributes.category;
+          wishlistObj['product_id'] = item.relations.product_id.attributes.id;
+          wishlistObj['brand'] = item.relations.product_id.attributes.brand;
+          wishlistObj['price'] = item.relations.product_id.attributes.price;
+          if (item.relations.product_id.attributes.discount) {
+            wishlistObj['discount'] = item.relations.product_id.attributes.discount;
+          }
+          wishlistArr.push(wishlistObj);
+        });
+        models.Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+          handleImagesTable.addImagesToResult(images, wishlistArr, 'product_id');
+          let totalNumOfProductsInWishlist = wishlistArr.length;
+          return res.status(200).send({wishlist: wishlistArr, totalNumOfProductsInWishlist})
+        })
+      })
+    })
+}
+
 
 module.exports = {createProduct,
                   getCategories,
@@ -239,4 +269,4 @@ module.exports = {createProduct,
                   deleteProductFromCart,
                   getTotalNumberOfProducts,
                   addProductToWishlist,
-                  deleteProductFromWishlist};
+                  deleteProductFromWishlist, getWishlist};
