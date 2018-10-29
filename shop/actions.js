@@ -228,7 +228,7 @@ function deleteProductFromWishlist(req, res) {
     models.Wishlist.where({user_id: req.user.attributes.id}).query(function(qb) {
       qb.count('id');
     }).fetchAll().then(count => {
-      return res.status(201).send(count);
+      return res.status(201).send({id: req.body.id, count});
     }).catch(err => {
       return res.status(400).send(err)
     })
@@ -246,6 +246,7 @@ function getWishlist(req, res) {
         items.map((item) => {
           var wishlistObj = {};
           let category = categories.find(o =>  o.id === +item.relations.product_id.attributes.category_id);
+          wishlistObj['id'] = item.attributes.id;
           wishlistObj['category'] = category.attributes.category;
           wishlistObj['product_id'] = item.relations.product_id.attributes.id;
           wishlistObj['brand'] = item.relations.product_id.attributes.brand;
