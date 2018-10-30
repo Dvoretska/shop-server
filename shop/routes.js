@@ -31,7 +31,7 @@ router.delete('/delete-from-cart',
     auth.isAuthenticated,
     actions.deleteProductFromCart);
 
-router.post('/update-cart',
+router.post('/decrease-cart',
     auth.isAuthenticated,
     actions.decreaseQuantityOfProductInCart);
 
@@ -50,5 +50,9 @@ router.delete('/delete-from-wishlist',
 router.get('/wishlist',
     auth.isAuthenticated,
     actions.getWishlist);
+
+router.get('/number-wishlist',
+    auth.isAuthenticated,
+    actions.totalNumOfProductsInWishlist);
 
 module.exports = router;

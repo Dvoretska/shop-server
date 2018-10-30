@@ -214,7 +214,6 @@ function addProductToWishlist(req, res) {
       qb.count('id');
     }).fetch().then((count) => {
       models.Wishlist.where({user_id: req.user.attributes.id, product_id: req.body.product_id}).fetch({withRelated: ['product_id']}).then((item) => {
-        console.log(item.attributes.id)
         return res.status(201).send({item, count});
       }).catch(err => {
         return res.status(400).send(err)
@@ -266,6 +265,15 @@ function getWishlist(req, res) {
 }
 
 
+function totalNumOfProductsInWishlist(req, res) {
+  models.Wishlist.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(total => {
+    return res.status(201).send({total: total.length});
+  }).catch(err => {
+    return res.status(400).send(err)
+  })
+}
+
+
 module.exports = {createProduct,
                   getCategories,
                   getProducts,
@@ -276,4 +284,4 @@ module.exports = {createProduct,
                   deleteProductFromCart,
                   getTotalNumberOfProducts,
                   addProductToWishlist,
-                  deleteProductFromWishlist, getWishlist};
+                  deleteProductFromWishlist, getWishlist, totalNumOfProductsInWishlist};
