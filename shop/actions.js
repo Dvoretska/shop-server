@@ -44,7 +44,6 @@ function getCategories(req, res) {
 }
 
 function getProducts(req, res) {
-  console.log(req.query)
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
   let category = req.query.category || 1;
