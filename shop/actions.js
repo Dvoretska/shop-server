@@ -44,12 +44,14 @@ function getCategories(req, res) {
 }
 
 function getProducts(req, res) {
+  console.log(req.query)
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
-  models.Product.forge().query(function(qb) {
-    qb.count('id');
+  let category = req.query.category || 1;
+  models.Product.where({category_id: category}).query(function(qb) {
+    qb.count('category_id');
   }).fetchAll().then((count)=> {
-    models.Product.forge().query(function(qb) {
+    models.Product.where({category_id: category}).query(function(qb) {
       qb.offset(skip).limit(limit);
     }).fetchAll({
       withRelated: ['category_id']}).then(products => {
@@ -223,11 +225,11 @@ function addProductToWishlist(req, res) {
 }
 
 function deleteProductFromWishlist(req, res) {
-  models.Wishlist.where({id: req.body.id}).destroy().then(() => {
+  models.Wishlist.where({product_id: req.body.product_id}).destroy().then(() => {
     models.Wishlist.where({user_id: req.user.attributes.id}).query(function(qb) {
       qb.count('id');
     }).fetchAll().then(count => {
-      return res.status(201).send({id: req.body.id, count});
+      return res.status(201).send({product_id: req.body.product_id, count});
     }).catch(err => {
       return res.status(400).send(err)
     })
