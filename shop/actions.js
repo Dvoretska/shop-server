@@ -136,7 +136,7 @@ function getCart(req, res) {
       products.map((item) => {
         var cart = {};
         let category = categories.find(o =>  o.id === +item.relations.product_id.attributes.category_id);
-        cart['category'] = category.attributes.category;
+        cart['category'] = category.attributes.name;
         cart['id'] = item.attributes.id;
         cart['size'] = item.attributes.size;
         cart['product_id'] = item.relations.product_id.attributes.id;
@@ -247,7 +247,7 @@ function getWishlist(req, res) {
           var wishlistObj = {};
           let category = categories.find(o =>  o.id === +item.relations.product_id.attributes.category_id);
           wishlistObj['id'] = item.attributes.id;
-          wishlistObj['category'] = category.attributes.category;
+          wishlistObj['category'] = category.attributes.name;
           wishlistObj['product_id'] = item.relations.product_id.attributes.id;
           wishlistObj['brand'] = item.relations.product_id.attributes.brand;
           wishlistObj['price'] = item.relations.product_id.attributes.price;
