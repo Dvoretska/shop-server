@@ -28,24 +28,49 @@ function createOrder(req, res) {
       });
       let orders = Orders.forge(products);
       orders.invokeThen('save').then((result) => {
-        return res.status(201).send({order_number: result[0].attributes.order_number})
-      }).catch(err => {
-        return res.status(400).send(err)
+        models.Cart.where({user_id: req.user.attributes.id}).destroy().then(() => {
+          return res.status(201).send({order_number: result[0].attributes.order_number})
+        }).catch(err => {
+          return res.status(400).send(err)
+        })
       })
     })
   })
 }
 
 function getOrder(req, res) {
-  Order.where({order_number: req.params.id}).fetchAll({withRelated: ['product_id']}).then(orders => {
+  Order.where({order_number: req.params.id}).fetchAll({withRelated: ['product_id', 'order_person_id']}).then(orders => {
     models.Category.forge().fetchAll().then(categories => {
       let ordersArr = [];
+      let info = {};
+      let person;
       orders.map(order => {
-        let category = categories.find(o => order.relations.product_id.attributes.category_id == o.id);
-        let updatedOrder = {...order.attributes, category: category.attributes.name, brand: order.relations.product_id.attributes.brand}
+        person = order.relations.order_person_id.attributes;
+        info['created'] = order.attributes.created;
+        info['order_number'] = order.attributes.order_number;
+        let category = categories.find(o => +order.relations.product_id.attributes.category_id === +o.id);
+        let amount = 0;
+        let discount = order.relations.product_id.attributes.discount;
+        let price = order.relations.product_id.attributes.price;
+        let quantity = order.attributes.quantity;
+        if(discount) {
+          amount = discount * quantity;
+        } else {
+          amount = price * quantity;
+        }
+        let updatedOrder = {
+          quantity: order.attributes.quantity,
+          size: order.attributes.size,
+          category: category.attributes.name,
+          brand: order.relations.product_id.attributes.brand,
+          amount: amount};
         ordersArr.push(updatedOrder)
       });
-      return res.status(201).send({orders: ordersArr})
+      let totalAmount = 0;
+      for (let i = 0; i < ordersArr.length; i++) {
+        totalAmount += ordersArr[i].amount;
+      }
+      return res.status(201).send({order_info: info, order: ordersArr, order_person: person, totalAmount})
     }).catch(err => {
       return res.status(400).send(err)
     })

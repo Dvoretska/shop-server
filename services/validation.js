@@ -1,5 +1,6 @@
 const accounts = require('../accounts/models');
 const blog = require('../blog/models');
+const {Order} = require('../shop/order/models');
 
 const passwordError = 'Password length should me more than 6 characters';
 const accessDenied = 'You have no rights for this action.';
@@ -113,6 +114,18 @@ function isImageValid(req, res, next) {
   }
 }
 
+function isAllowedToCurrentUserOnly() {
+  return function(req, res, next) {
+    Order.forge({order_number: req.params.id}).fetch({withRelated: ['order_person_id']}).then(orders => {
+      if(+orders.relations.order_person_id.attributes.user_id === +req.user.id) {
+        next();
+      } else {
+        return res.status(403).send({rights: accessDenied});
+      }
+    })
+  }
+}
+
 module.exports = {
     isPasswordValidOrEmpty,
     isAdmin,
@@ -123,5 +136,6 @@ module.exports = {
     isImageValid,
     limitedAllowedRoles,
     allowedRolesHandleBlog,
-    allowedRolesHandleComments
+    allowedRolesHandleComments,
+    isAllowedToCurrentUserOnly
 };

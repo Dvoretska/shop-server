@@ -11,6 +11,7 @@ router.post('/create-order',
 
 router.get('/get-order/:id',
     auth.isAuthenticated,
+    validation.isAllowedToCurrentUserOnly(),
     actions.getOrder);
 
 module.exports = router;

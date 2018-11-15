@@ -53,8 +53,8 @@ function login(req, res) {
 
 function profile(req, res) {
   const userEmail = req.user.attributes.email;
-  const filename = req.files[0].filename;
   if (req.files.length) {
+    var filename = req.files[0].filename;
     models.User.forge({email: userEmail}).fetch().then(function (model) {
         multipleUpload(req, res, (err) => {
         if (err) {
