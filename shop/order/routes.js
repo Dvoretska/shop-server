@@ -9,9 +9,13 @@ router.post('/create-order',
     auth.isAuthenticated,
     actions.createOrder);
 
-router.get('/get-order/:id',
+router.get('/order/:id',
     auth.isAuthenticated,
     validation.isAllowedToCurrentUserOnly(),
     actions.getOrder);
+
+router.get('/orders',
+    auth.isAuthenticated,
+    actions.getOrders);
 
 module.exports = router;

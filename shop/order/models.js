@@ -2,14 +2,25 @@ const knex = require('knex');
 const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
 const bookshelf = require('bookshelf');
 const db = bookshelf(knexDb);
-const accounts = require('../../accounts/models');
 const { Product } = require('../models');
+const { User } = require('../../accounts/models');
 
 const OrderPerson = db.Model.extend({
   tableName: 'order_person',
   user_id: function() {
-    return this.belongsTo(accounts.User, 'user_id');
+    return this.belongsTo(User, 'user_id');
   }
+});
+
+const OrderItem = db.Model.extend({
+  tableName: 'order_item',
+  product_id: function() {
+    return this.belongsTo(Product, 'product_id');
+  }
+});
+
+const OrderItems = db.Collection.extend({
+  model: OrderItem
 });
 
 
@@ -18,9 +29,12 @@ const Order = db.Model.extend({
   order_person_id: function() {
     return this.belongsTo(OrderPerson, 'order_person_id');
   },
-  product_id: function() {
-    return this.belongsTo(Product, 'product_id');
+  order_item_id: function() {
+    return this.belongsTo(OrderItem, 'order_item_id');
   },
+  user_id: function() {
+    return this.belongsTo(User, 'user_id');
+  }
 });
 
 const Orders = db.Collection.extend({
@@ -28,4 +42,4 @@ const Orders = db.Collection.extend({
 });
 
 
-module.exports = {OrderPerson, Order, Orders};
+module.exports = {OrderPerson, Order, Orders, OrderItem, OrderItems};
