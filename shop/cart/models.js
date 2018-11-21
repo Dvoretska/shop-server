@@ -1,0 +1,19 @@
+const knex = require('knex');
+const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
+const bookshelf = require('bookshelf');
+const db = bookshelf(knexDb);
+const {User} = require('../../accounts/models');
+const {Product} = require('../products/models');
+
+const Cart = db.Model.extend({
+  tableName: 'cart',
+  user_id: function() {
+    return this.belongsTo(User, 'user_id');
+  },
+  product_id: function() {
+    return this.belongsTo(Product, 'product_id');
+  },
+});
+
+
+module.exports = {Cart};

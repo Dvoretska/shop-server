@@ -38,7 +38,9 @@ app.use(express.static('public'));
 
 app.use('/', require('./accounts/routes'));
 app.use('/', require('./blog/routes'));
-app.use('/', require('./shop/routes'));
+app.use('/', require('./shop/cart/routes'));
+app.use('/', require('./shop/wishlist/routes'));
+app.use('/', require('./shop/products/routes'));
 app.use('/', require('./shop/order/routes'));
 
 const PORT =  3000;

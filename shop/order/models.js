@@ -2,7 +2,7 @@ const knex = require('knex');
 const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
 const bookshelf = require('bookshelf');
 const db = bookshelf(knexDb);
-const { Product } = require('../models');
+const { Product } = require('../products/models');
 const { User } = require('../../accounts/models');
 
 const OrderPerson = db.Model.extend({
