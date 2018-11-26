@@ -1,5 +1,4 @@
-const knex = require('knex');
-const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
+const knexDb = require('../../knex.js');
 const bookshelf = require('bookshelf');
 const db = bookshelf(knexDb);
 

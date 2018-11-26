@@ -1,5 +1,6 @@
-const models = require('../products/models');
 const {OrderPerson, Order, Orders, OrderItems} = require('./models');
+const {Cart} = require('../cart/models');
+const {Category} = require('../products/models');
 
 
 function createOrder(req, res) {
@@ -14,7 +15,7 @@ function createOrder(req, res) {
     user_id: req.user.id
   });
   orderPerson.save().then((person) => {
-    models.Cart.where({user_id: req.user.attributes.id}).fetchAll({ columns: ['quantity', 'size', 'product_id'], withRelated: ['product_id'] }).then(carts => {
+    Cart.where({user_id: req.user.attributes.id}).fetchAll({ columns: ['quantity', 'size', 'product_id'], withRelated: ['product_id'] }).then(carts => {
       let order_items = [];
       carts.map(cart => {
         let order_item = {};
@@ -49,7 +50,7 @@ function createOrder(req, res) {
         });
         let orders = Orders.forge(orderArr);
         orders.invokeThen('save').then((order) => {
-          models.Cart.where({user_id: req.user.attributes.id}).destroy().then(() => {
+          Cart.where({user_id: req.user.attributes.id}).destroy().then(() => {
             return res.status(201).send({order_number: order[0].attributes.order_number})
           }).catch(err => {
             return res.status(400).send(err)
@@ -62,7 +63,7 @@ function createOrder(req, res) {
 
 function getOrder(req, res) {
   Order.where({order_number: req.params.id}).fetchAll({withRelated: ['order_item_id.product_id', 'order_person_id', 'user_id']}).then(orders => {
-      models.Category.forge().fetchAll().then(categories => {
+      Category.forge().fetchAll().then(categories => {
         let ordersArr = [];
         let info = {};
         let person = {};
@@ -89,7 +90,7 @@ function getOrder(req, res) {
 }
 
 function getOrders(req, res) {
-  Order.where({user_id: req.user.id}).fetchAll({columns: ['total_amount', 'order_number', 'created', 'user_id']}).then(orders => {
+  Order.where({user_id: req.user.id}).query('orderBy', 'created', 'desc').fetchAll({columns: ['total_amount', 'order_number', 'created', 'user_id']}).then(orders => {
     let ordersArr = [];
     orders.map((order) => {
       let found = ordersArr.some((el) => {

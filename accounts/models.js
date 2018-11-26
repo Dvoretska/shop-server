@@ -1,5 +1,4 @@
-const knex = require('knex');
-const knexDb = knex({client: 'pg', connection: 'postgres://localhost/project_db'});
+const knexDb = require('../knex.js');
 const bookshelf = require('bookshelf');
 const securePassword = require('bookshelf-secure-password');
 const db = bookshelf(knexDb);
@@ -19,5 +18,7 @@ const User = db.Model.extend({
         return this.belongsTo(Role, 'role_id');
     },
 });
+
+
 
 module.exports = {User, Role};
