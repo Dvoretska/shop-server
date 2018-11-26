@@ -44,17 +44,34 @@ chai.use(chaiHttp);
 //         });
 //   })
 // })
+  const newUser = { email: "test-new@techbrij.com", password: "test34554" };
 
 describe('POST /login', () => {
+  //  before((done) => {
+  //    knex.migrate.rollback()
+  //    .then(() => {
+  //      knex.migrate.latest()
+  //      .then(() => {
+  //        knex('users').insert(newUser)
+  //        .then(() => {
+  //         done();
+  //        });
+  //      });
+  //    });
+  // });
 
-  after(function (done) {
-    server.close();
-    done();
-  });
+before((done) => {
+  knex.raw('CREATE TABLE users')
+  done();
+});
 
-  const newUser = { email: "test-new@techbrij.com", password: "test34554" };
+after((done) => {
+  knex.raw('DROP TABLE users')
+done();
+});
+
+
   it("should create user", (done) => {
-    User.where({email: newUser.email}).destroy();
       chai.request(server).post('/register')
         .send(newUser)
         .end(function(err,res){
@@ -80,7 +97,7 @@ describe('POST /login', () => {
       .send({ email: newUser.email, password: "random123" })
       .end(function(err,res){
         res.should.have.status(400);
-        expect(res.body.non_field_error,).to.equal('Incorrect email or password');
+        expect(res.body.non_field_error,).to.equals('Incorrect email or password');
         done();
       });
   });
