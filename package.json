@@ -37,7 +37,7 @@
     "supertest": "^3.3.0"
   },
   "scripts": {
-    "test": "mocha --timeout 15000 --exit ",
+    "test": "mocha --exit ",
     "dev": "nodemon index.js"
   },
   "author": "",

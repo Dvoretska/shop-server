@@ -16,7 +16,6 @@ function register(req, res) {
       email: req.body.email,
       password: req.body.password
     });
-
     user.save().then((result) => {
       const payload = {id: result.id};
       const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
@@ -36,7 +35,9 @@ function login(req, res) {
     if(!result) {
       return res.status(400).send(ERROR_MAPPING['login_error']);
     }
+    console.log('RESULT', result, req.body.password)
     result.authenticate(req.body.password).then(result => {
+
       const payload = {id: result.id};
       const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
       res.send({
