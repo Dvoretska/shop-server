@@ -2,11 +2,11 @@
 
 module.exports = {
   test: {
-    client: 'pg',
-    connection: 'postgres://localhost/project_db_test'
+    client: 'sqlite'
   },
   development: {
     client: 'pg',
     connection: 'postgres://localhost/project_db'
   }
 };
+
