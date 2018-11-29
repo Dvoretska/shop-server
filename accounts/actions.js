@@ -31,13 +31,11 @@ function register(req, res) {
 }
 
 function login(req, res) {
-	models.User.forge({email: req.body.email}).fetch({withRelated: ['role_id']}).then(result => {
+	models.User.where({email: req.body.email}).fetch({withRelated: ['role_id']}).then(result => {
     if(!result) {
       return res.status(400).send(ERROR_MAPPING['login_error']);
     }
-    console.log('RESULT', result, req.body.password)
     result.authenticate(req.body.password).then(result => {
-
       const payload = {id: result.id};
       const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
       res.send({
@@ -56,7 +54,7 @@ function profile(req, res) {
   const userEmail = req.user.attributes.email;
   if (req.files.length) {
     var filename = req.files[0].filename;
-    models.User.forge({email: userEmail}).fetch().then(function (model) {
+    models.User.where({email: userEmail}).fetch().then(function (model) {
         multipleUpload(req, res, (err) => {
         if (err) {
           return res.send({success: false});

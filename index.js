@@ -43,9 +43,6 @@ app.use('/', require('./shop/wishlist/routes'));
 app.use('/', require('./shop/products/routes'));
 app.use('/', require('./shop/order/routes'));
 
-var server = app.listen(process.env.port || 3000);
+app.listen(process.env.port || 3000);
 
-module.exports = {
-  server : server,
-  app : app
-};
+module.exports = app;
