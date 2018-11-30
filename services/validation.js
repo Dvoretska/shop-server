@@ -22,7 +22,7 @@ function getRole(roles, roleId) {
 }
 function getRoleId(userRole, callback) {
   accounts.Role.forge().fetchAll().then(roles => {
-    callback(roles.filter((role) => {return role.attributes.role == userRole})[0].attributes.id);
+    return callback(roles.filter((role) => {return role.attributes.role == userRole})[0].attributes.id);
   })
 }
 
@@ -43,7 +43,7 @@ function limitedAllowedRoles(acceptRoles) {
   return function(req, res, next) {
     accounts.Role.forge().fetchAll().then(roles => {
       const userEmail = req.body.email;
-      accounts.User.forge({email: userEmail}).fetch().then(function (user) {
+      accounts.User.forge({email: userEmail}).fetch().then((user) => {
         const requestRole = getRole(roles, req.user.attributes.role_id);
         const userRole = getRole(roles, user.attributes.role_id);
         if (isAdmin(requestRole) || acceptRoles.indexOf(requestRole) !== -1 && isUser(userRole)) {

@@ -11,22 +11,20 @@ const ERROR_MAPPING = {
 };
 
 function register(req, res) {
-	models.Role.forge({role: req.body.role || 'user'}).fetch().then(role => {
-    const user = new models.User({
-      email: req.body.email,
-      password: req.body.password
+  const user = new models.User({
+    email: req.body.email,
+    password: req.body.password
+  });
+  user.save().then((result) => {
+    const payload = {id: result.id};
+    const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
+    return res.status(201).send({
+      email: user.attributes.email,
+      token: token,
+      role: 'user'
     });
-    user.save().then((result) => {
-      const payload = {id: result.id};
-      const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
-      return res.status(201).send({
-        email: user.attributes.email,
-        token: token,
-        role: role.attributes.role
-      });
-    }).catch(err => {
-      return res.status(400).send(ERROR_MAPPING[err.code] || err)
-    })
+  }).catch(err => {
+    return res.status(400).send(ERROR_MAPPING[err.code] || err)
   })
 }
 
@@ -47,20 +45,42 @@ function login(req, res) {
     }).catch(() => {
       return res.status(400).send(ERROR_MAPPING['login_error']);
     })
+  }).catch(err => {
+    return res.status(400).send(err);
+  })
+}
+
+function createUser(req, res) {
+  models.Role.forge({role: req.body.userRole}).fetch().then(role => {
+    const user = new models.User({
+      email: req.body.email,
+      password: req.body.password,
+      role_id: role.attributes.id
+    });
+    user.save().then(() => {
+      models.User.where({email: req.body.email}).fetch({withRelated: ['role_id']})
+        .then(user => {
+          return res.status(201).send({result: user})
+        })
+        .catch(err => {
+          return res.status(400).send(ERROR_MAPPING[err.code] || err)
+        })
+    })
+  }).catch(err => {
+    return res.status(400).send(err);
   })
 }
 
 function profile(req, res) {
   const userEmail = req.user.attributes.email;
-  if (req.files.length) {
+  if (req.files  && req.files.length) {
     var filename = req.files[0].filename;
     models.User.where({email: userEmail}).fetch().then(function (model) {
         multipleUpload(req, res, (err) => {
         if (err) {
           return res.send({success: false});
         } else {
-          fs.unlink(`public/${model.get('image')}`, () => {
-          });
+          fs.unlink(`public/${model.get('image')}`, () => {});
           models.User.where({email: userEmail})
             .save({image: filename}, {patch: true});
         }
@@ -73,7 +93,7 @@ function profile(req, res) {
         .save({password_digest: hash}, {patch: true});
     });
   }
-  const imageResponse = req.files.length ? {image: filename} : {};
+  const imageResponse = req.files ? {image: filename} : {};
   return res.status(200).send(imageResponse);
 }
 
@@ -91,15 +111,14 @@ function getUsersList(req, res) {
 function update(req, res) {
   const userEmail = req.body.email;
   let filename = null;
-  if (req.files.length) {
+  if (req.files  && req.files.length) {
       filename = req.files[0].filename;
       multipleUpload(req, res, (err) => {
       if (err) {
         return res.send({success: false});
       } else {
         models.User.forge({email: userEmail}).fetch().then(function (user) {
-          fs.unlink(`public/${user.get('image')}`, () => {
-          });
+          fs.unlink(`public/${user.get('image')}`, () => {});
         });
         models.User.where({email: userEmail})
           .save({image: filename}, {patch: true});
@@ -115,15 +134,15 @@ function update(req, res) {
   models.Role.forge().fetchAll().then((roles) => {
     const requestRole = validation.getRole(roles, req.user.attributes.role_id);
     if (validation.isAdmin(requestRole)) {
-      for (const role of roles.models) {
-        if (role.attributes['role'] == req.body.selectedRole) {
+      for (let role of roles.models) {
+        if (role.attributes['role'] === req.body.selectedRole) {
           models.User.where({email: userEmail})
            .save({role_id: role.attributes['id']}, {patch: true});
         }
       }
     }
-  });
-  const imageResponse = req.files.length ? {image: filename} : {success: 'ok'};
+  })
+  const imageResponse = req.files ? {image: filename} : {success: 'ok'};
   return res.status(200).send(imageResponse);
 }
 
@@ -135,26 +154,9 @@ function deleteUser(req, res) {
     }).catch((err) => {
       return res.status(404).send({err})
     });
+  }).catch(err => {
+    return res.status(400).send(err);
   });
-}
-
-function createUser(req, res) {
-	validation.getRoleId(req.body.userRole, (id) => {
-	const user = new models.User({
-    email: req.body.email,
-    password: req.body.password,
-    role_id: id
-  });
-  user.save().then(() => {
-    models.User.where({email: req.body.email}).fetch({withRelated: ['role_id']})
-    .then(user => {
-	      return res.status(200).send({result: user})
-	    });
-	  })
-	  .catch(err => {
-	    return res.status(400).send(ERROR_MAPPING[err.code] || err)
-	  })
-	})
 }
 
 
