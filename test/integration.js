@@ -3,7 +3,6 @@ process.env.NODE_ENV = 'test';
 const app = require('../index');
 const knex = require('../knex');
 const chai = require('chai');
-const {expect, assert} = require('chai');
 const should = chai.should();
 const chaiHttp = require('chai-http');
 chai.use(chaiHttp);
