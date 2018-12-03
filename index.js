@@ -29,7 +29,7 @@ passport.use(strategy);
 app.use(passport.initialize());
 
 const corsOptions = {
-  origin: 'http://127.0.0.1:4200',
+  origin: 'http://localhost:4200',
   credentials: true
 }
 app.use(cors(corsOptions));
