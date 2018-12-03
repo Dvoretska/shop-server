@@ -11,7 +11,8 @@ const cors = require('cors');
 const busboy = require('connect-busboy');
 const accounts = require('./accounts/models');
 const multipleUpload = require('./services/multipleUpload');
-
+const cookieParser = require('cookie-parser');
+const credentials = require('./credentials.js');
 
 const opts = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -25,16 +26,23 @@ const strategy = new JwtStrategy(opts, (payload, next) => {
 });
 
 passport.use(strategy);
-app.use(cors());
 app.use(passport.initialize());
+
+const corsOptions = {
+  origin: 'http://127.0.0.1:4200',
+  credentials: true
+}
+app.use(cors(corsOptions));
+
 app.use(parser.urlencoded({
   extended: false
 }));
+app.use(cookieParser());
 app.use(parser.json());
 app.use(busboy());
 app.use(multipleUpload);
-app.use(express.static('public'));
 
+app.use(express.static('public'));
 
 app.use('/', require('./accounts/routes'));
 app.use('/', require('./blog/routes'));

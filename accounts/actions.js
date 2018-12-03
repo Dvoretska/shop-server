@@ -36,6 +36,11 @@ function login(req, res) {
     result.authenticate(req.body.password).then(result => {
       const payload = {id: result.id};
       const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
+      let options = {
+        maxAge: 1000 * 60 * 15,
+        httpOnly: false
+      };
+      res.cookie('cookieName', 'Dasha', options);
       res.send({
         token,
         email: result.attributes.email,
@@ -98,6 +103,7 @@ function profile(req, res) {
 }
 
 function getUsersList(req, res) {
+  console.log('Cookies: ', req.cookies)
 	models.Role.forge().fetchAll().then(roles => {
 		models.User.forge().fetchAll({withRelated: ['role_id']}).then(users => {
 	    if(!users) {
