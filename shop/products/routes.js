@@ -8,10 +8,13 @@ router.post('/create-product',
     auth.isAuthenticated,
     actions.createProduct);
 
+router.get('/search-products',
+    actions.getProductsBySearch);
+
 router.get('/categories',
     actions.getCategories);
 
-router.get('/products/',
+router.get('/products',
     actions.getProducts);
 
 router.get('/product/:id',

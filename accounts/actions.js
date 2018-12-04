@@ -103,7 +103,6 @@ function profile(req, res) {
 }
 
 function getUsersList(req, res) {
-  console.log('Cookies: ', req.cookies)
 	models.Role.forge().fetchAll().then(roles => {
 		models.User.forge().fetchAll({withRelated: ['role_id']}).then(users => {
 	    if(!users) {

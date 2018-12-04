@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const multipleUpload = require('../../services/multipleUpload');
 const handleImagesTable = require('../../services/handleImagesTable');
-const {Product, Category, Image} = require('./models');
+const {Product, Category, Image, Images} = require('./models');
 
 
 function createProduct(req, res) {
@@ -51,7 +51,7 @@ function getProducts(req, res) {
     qb.count('category_id');
   }).fetchAll().then((count)=> {
     Product.where({category_id: category}).query(function(qb) {
-      qb.offset(skip).limit(limit);
+      qb.offset(skip).limit(limit).orderBy('id','desc');
     }).fetchAll({
       withRelated: ['category_id']}).then(products => {
       if (!products) {
@@ -64,6 +64,25 @@ function getProducts(req, res) {
       })
     }
   )
+}
+
+function getProductsBySearch(req, res) {
+  let skip = req.query.skip || 0;
+  let limit = req.query.limit || 3;
+  let searchQuery = req.query.search;
+  let searchQueryLowerCase = searchQuery.toLowerCase();
+  Product.query(function (qb) {
+    qb.whereRaw(`LOWER(brand) LIKE ?`, [`%${searchQueryLowerCase}%`]).count('id')
+  }).fetchAll().then((count)=> {
+    Product.query(function (qb) {
+      qb.whereRaw(`LOWER(brand) LIKE ?`, [`%${searchQueryLowerCase}%`]).offset(skip).limit(limit).orderBy('id','desc')
+    }).fetchAll().then((products) => {
+      Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+        handleImagesTable.addImagesToResult(images, products, 'id', 'attributes');
+        return res.status(200).send({'products': products, 'totalAmount': count});
+      });
+    })
+  })
 }
 
 function getProduct(req, res) {
@@ -84,5 +103,6 @@ module.exports = {
   createProduct,
   getCategories,
   getProducts,
-  getProduct
+  getProduct,
+  getProductsBySearch
 };
