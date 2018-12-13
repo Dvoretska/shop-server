@@ -4,11 +4,11 @@ const auth = require('../../services/auth');
 
 const router = require('express').Router();
 
-router.post('/create-product',
+router.post('/product',
     auth.isAuthenticated,
     actions.createProduct);
 
-router.get('/search-products',
+router.get('/products/search',
     actions.getProductsBySearch);
 
 router.get('/categories',

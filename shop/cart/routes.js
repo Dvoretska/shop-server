@@ -5,23 +5,23 @@ const auth = require('../../services/auth');
 const router = require('express').Router();
 
 
-router.post('/add-to-cart',
+router.post('/',
     auth.isAuthenticated,
     actions.addProductToCart);
 
-router.get('/cart',
+router.get('/',
     auth.isAuthenticated,
     actions.getCart);
 
-router.delete('/delete-from-cart',
+router.delete('/',
     auth.isAuthenticated,
     actions.deleteProductFromCart);
 
-router.post('/decrease-cart',
+router.post('/decrease',
     auth.isAuthenticated,
     actions.decreaseQuantityOfProductInCart);
 
-router.get('/number-products',
+router.get('/number',
     auth.isAuthenticated,
     actions.getTotalNumberOfProductsInCart);
 
