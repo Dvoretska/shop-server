@@ -1,9 +1,10 @@
 const {Cart} = require('./models');
-const {Category, Image} = require('../products/models');
+const {Category, Image, Stock} = require('../products/models');
 const handleImagesTable = require('../../services/handleImagesTable');
 const summary = require('../../services/summary');
 
 function addProductToCart(req, res) {
+
   Cart.forge({product_id: req.body.product_id, size: req.body.size, user_id: req.user.attributes.id})
       .query('orderBy', 'id', 'desc')
       .fetch({withRelated: ['product_id']})

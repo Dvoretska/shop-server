@@ -5,8 +5,8 @@ const db = bookshelf(knexDb);
 
 const Product = db.Model.extend({
   tableName: 'products',
-  category_id: function() {
-    return this.belongsTo(Category, 'category_id');
+  subcategory_id: function() {
+    return this.belongsTo(Subcategory, 'subcategory_id');
   }
 });
 
@@ -20,7 +20,7 @@ const Size = db.Model.extend({
 
 const Subcategory = db.Model.extend({
   tableName: 'subcategories',
-  category_id: function() {
+  category: function() {
     return this.belongsTo(Category, 'category_id');
   }
 });

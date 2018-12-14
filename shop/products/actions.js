@@ -2,8 +2,9 @@ const path = require('path');
 const fs = require('fs');
 const multipleUpload = require('../../services/multipleUpload');
 const handleImagesTable = require('../../services/handleImagesTable');
-const {Product, Category, Image, Images} = require('./models');
-
+const {Product, Category, Image, Images, Subcategory} = require('./models');
+const knex = require('../../knex');
+const _ = require('lodash');
 
 function createProduct(req, res) {
   const product = new Product({
@@ -12,10 +13,10 @@ function createProduct(req, res) {
     material: req.body.material,
     discount: req.body.discount,
     description: req.body.description,
-    category_id: req.body.category_id
+    subcategory_id: req.body.subcategory_id
   });
   product.save().then(() => {
-    Product.forge({id: product.id}).fetch({withRelated: ['category_id']}).then((product) => {
+    Product.forge({id: product.id}).fetch({withRelated: ['subcategory_id']}).then((product) => {
       let files = [];
       for(let file of req.files) {
         files.push({image: file.filename, product_id: product.attributes.id})
@@ -43,17 +44,33 @@ function getCategories(req, res) {
   })
 }
 
+function getCategoriesTree(req, res) {
+  Subcategory.forge().fetchAll({withRelated: ['category']}).then(result => {
+    return res.status(200).send({resp: result})
+  })
+}
+
+function getSubcategories(req, res) {
+  Subcategory.where({category_id: req.params.category_id}).fetchAll().then(subcategories => {
+    if(!subcategories) {
+      return res.status(404).send('Not Found');
+    }
+    return res.status(200).send(subcategories)
+  })
+}
+
 function getProducts(req, res) {
+  console.log(req.query)
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
-  let category = req.query.category || 1;
-  Product.where({category_id: category}).query(function(qb) {
-    qb.count('category_id');
+  let subcategory = req.query.subcategory || 1;
+  Product.where({subcategory_id: subcategory}).query(function(qb) {
+    qb.count('subcategory_id');
   }).fetchAll().then((count)=> {
-    Product.where({category_id: category}).query(function(qb) {
+    Product.where({subcategory_id: subcategory}).query(function(qb) {
       qb.offset(skip).limit(limit).orderBy('id','desc');
-    }).fetchAll({
-      withRelated: ['category_id']}).then(products => {
+    }).fetchAll({withRelated: ['subcategory_id']}).then(products => {
+        console.log(products)
       if (!products) {
         return res.status(404).send('Not Found');
       }
@@ -104,5 +121,7 @@ module.exports = {
   getCategories,
   getProducts,
   getProduct,
-  getProductsBySearch
+  getProductsBySearch,
+  getSubcategories,
+  getCategoriesTree
 };

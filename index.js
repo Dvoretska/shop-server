@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
 dotenv.config();
-const express = require('express');
+const express = require('express')
 const app = new express();
 const passport = require('passport');
 const passportJWT = require('passport-jwt');
@@ -52,5 +52,4 @@ app.use('/', require('./shop/products/routes'));
 app.use('/', require('./shop/order/routes'));
 
 app.listen(process.env.port || 3000);
-
 module.exports = app;
