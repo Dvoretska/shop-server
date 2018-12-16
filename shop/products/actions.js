@@ -45,13 +45,15 @@ function getCategories(req, res) {
 }
 
 function getCategoriesTree(req, res) {
-  Subcategory.forge().fetchAll({withRelated: ['category']}).then(result => {
-    return res.status(200).send({resp: result})
+  knex.raw(`SELECT array_to_json(array_agg(json_build_object('id', s.id, 'name', s.name))) children, c.name, c.id FROM subcategories s JOIN categories c ON s.category_id = c.id GROUP BY c.name, c.id`).then((result) => {
+    return res.status(200).send({categoriesTree: result.rows})
+  }).catch((err) => {
+    return res.status(404).send('Not Found');
   })
 }
 
 function getSubcategories(req, res) {
-  Subcategory.where({category_id: req.params.category_id}).fetchAll().then(subcategories => {
+  Subcategory.where({category_id: req.params.category_id}).fetchAll({withRelated: ['category']}).then(subcategories => {
     if(!subcategories) {
       return res.status(404).send('Not Found');
     }
@@ -60,7 +62,6 @@ function getSubcategories(req, res) {
 }
 
 function getProducts(req, res) {
-  console.log(req.query)
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
   let subcategory = req.query.subcategory || 1;
@@ -70,7 +71,6 @@ function getProducts(req, res) {
     Product.where({subcategory_id: subcategory}).query(function(qb) {
       qb.offset(skip).limit(limit).orderBy('id','desc');
     }).fetchAll({withRelated: ['subcategory_id']}).then(products => {
-        console.log(products)
       if (!products) {
         return res.status(404).send('Not Found');
       }
