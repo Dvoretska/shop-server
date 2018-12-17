@@ -1,6 +1,6 @@
 const {OrderPerson, Order, Orders, OrderItems} = require('./models');
 const {Cart} = require('../cart/models');
-const {Category} = require('../products/models');
+const {Category} = require('../categories/models');
 
 
 function createOrder(req, res) {

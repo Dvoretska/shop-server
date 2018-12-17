@@ -1,5 +1,6 @@
 const {Cart} = require('./models');
-const {Category, Image, Stock} = require('../products/models');
+const {Image, Stock} = require('../products/models');
+const {Category} = require('../categories/models');
 const handleImagesTable = require('../../services/handleImagesTable');
 const summary = require('../../services/summary');
 

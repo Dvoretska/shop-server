@@ -1,6 +1,7 @@
 const handleImagesTable = require('../../services/handleImagesTable');
 const {Wishlist} = require('./models');
-const {Category, Image} = require('../products/models');
+const {Image} = require('../products/models');
+const {Category} = require('../categories/models');
 
 function addProductToWishlist(req, res) {
   const wishlistItem = new Wishlist({

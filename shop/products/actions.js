@@ -2,7 +2,8 @@ const path = require('path');
 const fs = require('fs');
 const multipleUpload = require('../../services/multipleUpload');
 const handleImagesTable = require('../../services/handleImagesTable');
-const {Product, Category, Image, Images, Subcategory} = require('./models');
+const {Product, Image, Images} = require('./models');
+const {Category, Subcategory} = require('../categories/models');
 const knex = require('../../knex');
 const _ = require('lodash');
 
@@ -40,15 +41,7 @@ function getCategories(req, res) {
     if(!categories) {
       return res.status(404).send('Not Found');
     }
-    return res.status(200).send(categories)
-  })
-}
-
-function getCategoriesTree(req, res) {
-  knex.raw(`SELECT array_to_json(array_agg(json_build_object('id', s.id, 'name', s.name))) children, c.name, c.id FROM subcategories s JOIN categories c ON s.category_id = c.id GROUP BY c.name, c.id`).then((result) => {
-    return res.status(200).send({categoriesTree: result.rows})
-  }).catch((err) => {
-    return res.status(404).send('Not Found');
+    return res.status(200).send(categories);
   })
 }
 
@@ -57,7 +50,19 @@ function getSubcategories(req, res) {
     if(!subcategories) {
       return res.status(404).send('Not Found');
     }
-    return res.status(200).send(subcategories)
+    return res.status(200).send(subcategories);
+  })
+}
+
+function getCategoriesTree(req, res) {
+  knex.raw(`SELECT array_to_json(array_agg(json_build_object('value', s.id, 'text', s.name))) children, c.name as text, c.id as value
+            FROM subcategories s 
+            JOIN categories c ON s.category_id = c.id 
+            GROUP BY c.name, c.id 
+            ORDER BY c.name`).then((result) => {
+    return res.status(200).send({categoriesTree: result.rows})
+  }).catch((err) => {
+    return res.status(404).send({err});
   })
 }
 
