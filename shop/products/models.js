@@ -1,6 +1,7 @@
 const knexDb = require('../../knex.js');
 const bookshelf = require('bookshelf');
 const db = bookshelf(knexDb);
+const {Subcategory} = require('../categories/models');
 
 
 const Product = db.Model.extend({
@@ -10,19 +11,8 @@ const Product = db.Model.extend({
   }
 });
 
-const Category = db.Model.extend({
-  tableName: 'categories',
-});
-
 const Size = db.Model.extend({
   tableName: 'sizes',
-});
-
-const Subcategory = db.Model.extend({
-  tableName: 'subcategories',
-  category: function() {
-    return this.belongsTo(Category, 'category_id');
-  }
 });
 
 const Image = db.Model.extend({
@@ -47,4 +37,4 @@ const Images = db.Collection.extend({
 });
 
 
-module.exports = {Product, Category, Subcategory, Image, Images, Stock};
+module.exports = {Product, Image, Images, Stock};

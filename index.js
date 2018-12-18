@@ -31,7 +31,8 @@ app.use(passport.initialize());
 const corsOptions = {
   origin: 'http://localhost:4200',
   credentials: true
-}
+};
+
 app.use(cors(corsOptions));
 
 app.use(parser.urlencoded({
@@ -49,7 +50,17 @@ app.use('/', require('./blog/routes'));
 app.use('/cart', require('./shop/cart/routes'));
 app.use('/', require('./shop/wishlist/routes'));
 app.use('/', require('./shop/products/routes'));
+app.use('/', require('./shop/categories/routes'));
 app.use('/', require('./shop/order/routes'));
+
+app.use(function(req, res) {
+  res.status(404).send();
+});
+
+app.use(function(err, req, res, next) {
+  console.log(err.stack)
+  res.status(500).send({err: '500: Internal Server Error'});
+});
 
 app.listen(process.env.port || 3000);
 module.exports = app;

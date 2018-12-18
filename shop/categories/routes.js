@@ -8,10 +8,10 @@ router.get('/categories',
 router.get('/categories-tree',
     actions.getCategoriesTree);
 
+router.delete('/subcategories',
+    actions.deleteSubcategories);
+
 router.get('/subcategories/:category_id',
     actions.getSubcategories);
-
-router.delete('/subcategories/delete',
-    actions.deleteSubcategories);
 
 module.exports = router;

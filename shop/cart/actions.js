@@ -46,16 +46,18 @@ function addProductToCart(req, res) {
             })
           })
         }
-      })
+      }).catch((err) => {
+    return res.status(400).send(err)
+  })
 }
 
-function getCart(req, res) {
+function getCart(req, res, next) {
   Cart.where({user_id: req.user.attributes.id})
       .query('orderBy', 'quantity', 'desc')
       .fetchAll({withRelated: ['product_id']})
       .then(products => {
         if(!products) {
-          return res.status(404).send('Not Found');
+          return next();
         }
         Category.forge().fetchAll().then(categories => {
           let cartArr = [];

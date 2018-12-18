@@ -3,11 +3,9 @@ const fs = require('fs');
 const multipleUpload = require('../../services/multipleUpload');
 const handleImagesTable = require('../../services/handleImagesTable');
 const {Product, Image, Images} = require('./models');
-const {Category, Subcategory} = require('../categories/models');
-const knex = require('../../knex');
-const _ = require('lodash');
+const {Subcategory} = require('../categories/models');
 
-function createProduct(req, res) {
+function createProduct(req, res, next) {
   const product = new Product({
     brand: req.body.brand,
     price: req.body.price,
@@ -17,7 +15,7 @@ function createProduct(req, res) {
     subcategory_id: req.body.subcategory_id
   });
   product.save().then(() => {
-    Product.forge({id: product.id}).fetch({withRelated: ['subcategory_id']}).then((product) => {
+    return Product.forge({id: product.id}).fetch({withRelated: ['subcategory_id']}).then((product) => {
       let files = [];
       for(let file of req.files) {
         files.push({image: file.filename, product_id: product.attributes.id})
@@ -33,62 +31,37 @@ function createProduct(req, res) {
         }
       })
     })
+  }).catch(err => {
+    return next(err);
   })
 }
 
-function getCategories(req, res) {
-  Category.forge().fetchAll().then(categories => {
-    if(!categories) {
-      return res.status(404).send('Not Found');
-    }
-    return res.status(200).send(categories);
-  })
-}
-
-function getSubcategories(req, res) {
-  Subcategory.where({category_id: req.params.category_id}).fetchAll({withRelated: ['category']}).then(subcategories => {
-    if(!subcategories) {
-      return res.status(404).send('Not Found');
-    }
-    return res.status(200).send(subcategories);
-  })
-}
-
-function getCategoriesTree(req, res) {
-  knex.raw(`SELECT array_to_json(array_agg(json_build_object('value', s.id, 'text', s.name))) children, c.name as text, c.id as value
-            FROM subcategories s 
-            JOIN categories c ON s.category_id = c.id 
-            GROUP BY c.name, c.id 
-            ORDER BY c.name`).then((result) => {
-    return res.status(200).send({categoriesTree: result.rows})
-  }).catch((err) => {
-    return res.status(404).send({err});
-  })
-}
-
-function getProducts(req, res) {
+function getProducts(req, res, next) {
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
-  let subcategory = req.query.subcategory || 1;
-  Product.where({subcategory_id: subcategory}).query(function(qb) {
-    qb.count('subcategory_id');
-  }).fetchAll().then((count)=> {
-    Product.where({subcategory_id: subcategory}).query(function(qb) {
-      qb.offset(skip).limit(limit).orderBy('id','desc');
-    }).fetchAll({withRelated: ['subcategory_id']}).then(products => {
-      if (!products) {
-        return res.status(404).send('Not Found');
-      }
-      Image.forge().fetchAll({withRelated: 'product'}).then(images => {
-        handleImagesTable.addImagesToResult(images, products, 'id', 'attributes');
-          return res.status(200).send({'products': products, 'totalAmount': count});
-        });
-      })
+  let subcategory_slug = req.query.subcategory || 'work';
+  Subcategory.where({slug: subcategory_slug}).fetch().then((subcategory) => {
+    if (!subcategory) {
+      return next();
     }
-  )
+    return Product.where({subcategory_id: subcategory.id}).query(function(qb) {
+      qb.count('subcategory_id');
+    }).fetchAll().then((count)=> {
+      return Product.where({subcategory_id: subcategory.id}).query(function(qb) {
+          qb.offset(skip).limit(limit).orderBy('id','desc');
+        }).fetchAll({withRelated: ['subcategory_id']}).then(products => {
+          return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+            handleImagesTable.addImagesToResult(images, products, 'id', 'attributes');
+            return res.status(200).send({'products': products, 'totalAmount': count});
+          });
+        })
+      })
+  }).catch(err => {
+    return next(err);
+  })
 }
 
-function getProductsBySearch(req, res) {
+function getProductsBySearch(req, res, next) {
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
   let searchQuery = req.query.search;
@@ -96,37 +69,37 @@ function getProductsBySearch(req, res) {
   Product.query(function (qb) {
     qb.whereRaw(`LOWER(brand) LIKE ?`, [`%${searchQueryLowerCase}%`]).count('id')
   }).fetchAll().then((count)=> {
-    Product.query(function (qb) {
+    return Product.query(function (qb) {
       qb.whereRaw(`LOWER(brand) LIKE ?`, [`%${searchQueryLowerCase}%`]).offset(skip).limit(limit).orderBy('id','desc')
     }).fetchAll().then((products) => {
-      Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+      return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
         handleImagesTable.addImagesToResult(images, products, 'id', 'attributes');
         return res.status(200).send({'products': products, 'totalAmount': count});
       });
     })
+  }).catch(err => {
+    return next(err);
   })
 }
 
-function getProduct(req, res) {
-  Product.forge({id: req.params.id}).fetch({
-    withRelated: ['category_id']}).then(product => {
+function getProduct(req, res, next) {
+  Product.forge({id: req.params.id}).fetch({withRelated: ['subcategory_id']}).then(product => {
     if (!product) {
-      return res.status(404).send('Not Found');
+      return next();
     }
-    Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+    return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
       handleImagesTable.addImagesToResult(images, product, 'id', 'attributes');
       return res.status(200).send(product);
-    });
+    })
+  }).catch(err => {
+    return next(err);
   })
 }
 
 
 module.exports = {
   createProduct,
-  getCategories,
   getProducts,
   getProduct,
-  getProductsBySearch,
-  getSubcategories,
-  getCategoriesTree
+  getProductsBySearch
 };
