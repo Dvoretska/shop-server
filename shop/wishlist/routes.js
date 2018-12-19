@@ -4,19 +4,19 @@ const auth = require('../../services/auth');
 
 const router = require('express').Router();
 
-router.post('/add-to-wishlist',
+router.post('/add',
     auth.isAuthenticated,
     actions.addProductToWishlist);
 
-router.delete('/delete-from-wishlist',
+router.delete('/delete',
     auth.isAuthenticated,
     actions.deleteProductFromWishlist);
 
-router.get('/wishlist',
+router.get('/',
     auth.isAuthenticated,
     actions.getWishlist);
 
-router.get('/number-wishlist',
+router.get('/number',
     auth.isAuthenticated,
     actions.totalNumOfProductsInWishlist);
 

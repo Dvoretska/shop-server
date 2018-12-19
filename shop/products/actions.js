@@ -39,15 +39,16 @@ function createProduct(req, res, next) {
 function getProducts(req, res, next) {
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
-  let subcategory_slug = req.query.subcategory || 'work';
-  Subcategory.where({slug: subcategory_slug}).fetch().then((subcategory) => {
-    if (!subcategory) {
-      return next();
-    }
-    return Product.where({subcategory_id: subcategory.id}).query(function(qb) {
-      qb.count('subcategory_id');
-    }).fetchAll().then((count)=> {
+  let subcategory_slug = req.query.subcategory;
+  if(subcategory_slug) {
+    Subcategory.where({slug: subcategory_slug}).fetch().then((subcategory) => {
+      if (!subcategory) {
+        return next();
+      }
       return Product.where({subcategory_id: subcategory.id}).query(function(qb) {
+        qb.count('subcategory_id');
+      }).fetchAll().then((count)=> {
+        return Product.where({subcategory_id: subcategory.id}).query(function(qb) {
           qb.offset(skip).limit(limit).orderBy('id','desc');
         }).fetchAll({withRelated: ['subcategory_id']}).then(products => {
           return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
@@ -56,9 +57,25 @@ function getProducts(req, res, next) {
           });
         })
       })
-  }).catch(err => {
-    return next(err);
-  })
+    }).catch(err => {
+      return next(err);
+    })
+  } else {
+    Product.forge().query(function(qb) {
+      qb.count('id');
+    }).fetchAll().then((count)=> {
+      return Product.forge().query(function(qb) {
+        qb.offset(skip).limit(limit).orderBy('id','desc');
+      }).fetchAll({withRelated: ['subcategory_id']}).then(products => {
+        return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+          handleImagesTable.addImagesToResult(images, products, 'id', 'attributes');
+          return res.status(200).send({'products': products, 'totalAmount': count});
+        });
+      })
+    }).catch(err => {
+      return next(err);
+    })
+  }
 }
 
 function getProductsBySearch(req, res, next) {

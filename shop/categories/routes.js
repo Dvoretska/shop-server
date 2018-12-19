@@ -14,4 +14,7 @@ router.delete('/subcategories',
 router.get('/subcategories/:category_id',
     actions.getSubcategories);
 
+router.post('/category/add',
+    actions.addCategory);
+
 module.exports = router;

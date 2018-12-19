@@ -48,7 +48,7 @@ app.use(express.static('public'));
 app.use('/', require('./accounts/routes'));
 app.use('/', require('./blog/routes'));
 app.use('/cart', require('./shop/cart/routes'));
-app.use('/', require('./shop/wishlist/routes'));
+app.use('/wishlist', require('./shop/wishlist/routes'));
 app.use('/', require('./shop/products/routes'));
 app.use('/', require('./shop/categories/routes'));
 app.use('/', require('./shop/order/routes'));
@@ -58,8 +58,11 @@ app.use(function(req, res) {
 });
 
 app.use(function(err, req, res, next) {
-  console.log(err.stack)
-  res.status(500).send({err: '500: Internal Server Error'});
+  if(err.message) {
+    res.status(400).send(err);
+  } else {
+    res.status(500).send({err: '500: Internal Server Error'});
+  }
 });
 
 app.listen(process.env.port || 3000);
