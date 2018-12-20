@@ -17,4 +17,7 @@ router.get('/subcategories/:category_id',
 router.post('/category/add',
     actions.addCategory);
 
+router.post('/subcategory/add',
+    actions.saveAdditionalSubcategory);
+
 module.exports = router;

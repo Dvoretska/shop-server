@@ -4,7 +4,7 @@ const slugify = require('slugify');
 
 
 const ERROR_MAPPING = {
-  '23505': {message: 'Category already exists'}
+  '23505': {message: 'The specified item already exists'}
 };
 
 function getCategories(req, res, next) {
@@ -46,8 +46,41 @@ function addCategory(req, res, next) {
     })
   });
   return category.save().then((category) => {
-    const transformedCategory = {text: category.attributes.name, value: category.attributes.id, slug: category.attributes.slug};
-    return res.status(201).send({category: transformedCategory})
+    if(req.body.subcategory) {
+      const subcategory = new Subcategory({
+        name: req.body.subcategory,
+        slug: slugify(req.body.subcategory, {
+          lower: true
+        }),
+        category_id: category.id
+      });
+      return subcategory.save().then((subcategory) => {
+        return res.status(201).send({subcategory})
+      })
+    } else {
+      return res.status(201).send({category})
+    }
+  }).catch(err => {
+    return next(ERROR_MAPPING[err.code] || err);
+  })
+}
+
+function saveAdditionalSubcategory(req, res, next) {
+  const subcategory = new Subcategory({
+    name: req.body.subcategory,
+    slug: slugify(req.body.subcategory, {
+      lower: true
+    }),
+    category_id: req.body.category_id
+  });
+  return subcategory.save().then((subcategory) => {
+    const transformedSubcategory = {
+      text: subcategory.attributes.name,
+      value: subcategory.attributes.id,
+      slug: subcategory.attributes.slug,
+      category_id: subcategory.attributes.category_id
+    };
+    return res.status(201).send({subcategory: transformedSubcategory})
   }).catch(err => {
     return next(ERROR_MAPPING[err.code] || err);
   })
@@ -74,5 +107,6 @@ module.exports = {
   getSubcategories,
   getCategoriesTree,
   deleteSubcategories,
-  addCategory
+  addCategory,
+  saveAdditionalSubcategory
 };

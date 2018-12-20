@@ -58,6 +58,7 @@ app.use(function(req, res) {
 });
 
 app.use(function(err, req, res, next) {
+  console.log(err)
   if(err.message) {
     res.status(400).send(err);
   } else {
