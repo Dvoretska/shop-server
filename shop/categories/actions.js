@@ -25,16 +25,24 @@ function getSubcategories(req, res, next) {
   })
 }
 
-function deleteSubcategories(req, res) {
-  let subcategories = JSON.parse(req.body.subcategories);
+function deleteSubcategories(req, res, next) {
+  let subcategories = req.body.subcategories.split(',');
   let arr = [];
   for(let i = 0; i < subcategories.length; i++) {
-    arr.push(subcategories[i]);
+    arr.push(+subcategories[i]);
   }
-  Subcategory.query(qb => { qb.whereIn('id', arr) }).destroy().then((res)=>{
-    return res.status(200).send({ids: subcategories})
+  Subcategory.query(qb => { qb.whereIn('id', arr) }).destroy().then(()=>{
+    return knex.raw(`DELETE FROM categories
+      WHERE id IN
+      (SELECT c.id
+      FROM categories c
+      LEFT JOIN subcategories s
+      ON s.category_id = c.id
+      WHERE s.name IS NULL)`).then(() => {
+        return res.status(200).send({success: 'ok'})
+    })
   }).catch(err => {
-    return res.status(400).send(err)
+    return next(ERROR_MAPPING[err.code] || err);
   })
 }
 
@@ -87,7 +95,7 @@ function saveAdditionalSubcategory(req, res, next) {
 }
 
 function getCategoriesTree(req, res, next) {
-  knex.raw(`SELECT array_to_json(array_agg(json_build_object('value', s.id, 'text', s.name, 'slug', s.slug))) children, c.name as text, c.id as value, c.slug as slug
+  knex.raw(`SELECT array_to_json(array_agg(json_build_object('value', s.id, 'text', s.name, 'slug', s.slug, 'checked', false))) children, c.name as text, c.id as value, c.slug as slug
             FROM subcategories s 
             JOIN categories c ON s.category_id = c.id 
             GROUP BY c.name, c.id, c.slug 

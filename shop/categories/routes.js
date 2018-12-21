@@ -8,7 +8,7 @@ router.get('/categories',
 router.get('/categories-tree',
     actions.getCategoriesTree);
 
-router.delete('/subcategories',
+router.delete('/subcategories/delete',
     actions.deleteSubcategories);
 
 router.get('/subcategories/:category_id',
