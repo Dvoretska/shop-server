@@ -13,6 +13,9 @@ const accounts = require('./accounts/models');
 const multipleUpload = require('./services/multipleUpload');
 const cookieParser = require('cookie-parser');
 const credentials = require('./credentials.js');
+const knex = require('./knex.js');
+const session = require('express-session');
+const KnexSessionStore = require('connect-session-knex')(session);
 
 const opts = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -32,6 +35,18 @@ const corsOptions = {
   origin: 'http://localhost:4200',
   credentials: true
 };
+
+const store = new KnexSessionStore({
+  knex: knex,
+  tablename: 'sessions'
+});
+
+app.use(session({
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: true,
+  store: store
+}));
 
 app.use(cors(corsOptions));
 
