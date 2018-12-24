@@ -146,7 +146,7 @@ function update(req, res) {
         }
       }
     }
-  })
+  });
   const imageResponse = req.files ? {image: filename} : {success: 'ok'};
   return res.status(200).send(imageResponse);
 }

@@ -1,7 +1,7 @@
 const actions = require('./actions');
 const validation = require('../services/validation');
 const auth = require('../services/auth');
-
+const passport = require('passport');
 
 const router = require('express').Router();
 

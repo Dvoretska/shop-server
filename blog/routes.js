@@ -12,11 +12,9 @@ router.post('/create-post',
   actions.createPost);
 
 router.get('/posts',
-  auth.isAuthenticated,
   actions.getPosts);
 
 router.get('/post',
-  auth.isAuthenticated,
   actions.getPost);
 
 router.post('/comment',

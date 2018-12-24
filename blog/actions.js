@@ -22,7 +22,7 @@ function getPosts(req, res) {
         if(!posts) {
             return res.status(404).send('Not Found');
         }
-        const ids = posts.map((post) => {return post.id})
+        const ids = posts.map((post) => {return post.id});
         return res.status(200).send({posts, meta: ids})
     });
 }

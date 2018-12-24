@@ -19,6 +19,13 @@ const User = db.Model.extend({
     },
 });
 
+const Oauth = db.Model.extend({
+    tableName: 'oauth',
+    user_id: function() {
+        return this.belongsTo(User, 'user_id');
+    },
+});
 
 
-module.exports = {User, Role};
+
+module.exports = {User, Role, Oauth};
