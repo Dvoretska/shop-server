@@ -12,6 +12,10 @@ router.post('/register',
 router.post('/login',
   actions.login);
 
+router.get('/token-verify',
+    auth.isAuthenticated,
+    actions.tokenVerify);
+
 router.get('/users',
   auth.isAuthenticated,
   validation.allowedRoles(['admin', 'premium']),

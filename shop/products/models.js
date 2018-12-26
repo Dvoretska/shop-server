@@ -12,7 +12,7 @@ const Product = db.Model.extend({
 });
 
 const Size = db.Model.extend({
-  tableName: 'sizes',
+  tableName: 'sizes'
 });
 
 const Image = db.Model.extend({

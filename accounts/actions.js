@@ -18,11 +18,7 @@ function register(req, res) {
   user.save().then((result) => {
     const payload = {id: result.id};
     const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
-    return res.status(201).send({
-      email: user.attributes.email,
-      token: token,
-      role: 'user'
-    });
+    return res.status(201).send({user: {email: user.attributes.email,role: 'user'}, token});
   }).catch(err => {
     return res.status(400).send(ERROR_MAPPING[err.code] || err)
   })
@@ -36,22 +32,24 @@ function login(req, res) {
     result.authenticate(req.body.password).then(result => {
       const payload = {id: result.id};
       const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
-      let options = {
-        maxAge: 1000 * 60 * 15,
-        httpOnly: false
-      };
-      res.cookie('cookieName', 'Dasha', options);
-      res.send({
+      res.status(200).send({
         token,
-        email: result.attributes.email,
-        image: result.attributes.image,
-        role: result.relations.role_id.attributes.role
+        user: {email: result.attributes.email, image: result.attributes.image, role: result.relations.role_id.attributes.role}
       });
-    }).catch(() => {
+    }).catch((err) => {
       return res.status(400).send(ERROR_MAPPING['login_error']);
     })
   }).catch(err => {
     return res.status(400).send(err);
+  })
+}
+
+function tokenVerify(req, res, next) {
+  models.User.where({id: req.user.id}).fetch({withRelated: ['role_id']}).then(result => {
+    const user = {email: result.attributes.email, image: result.attributes.image, role: result.relations.role_id.attributes.role};
+    return res.status(200).send({user});
+  }).catch(err => {
+    return next(err);
   })
 }
 
@@ -165,4 +163,4 @@ function deleteUser(req, res) {
 }
 
 
-module.exports = {deleteUser, createUser, getUsersList, login, register, profile, update};
+module.exports = {deleteUser, createUser, getUsersList, login, register, tokenVerify, profile, update};
