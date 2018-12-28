@@ -10,14 +10,9 @@ module.exports = function(passport) {
     secretOrKey: process.env.SECRET_OR_KEY
   };
 
-  passport.use(new JwtStrategy(opts, (payload, cb) => {
+  passport.use(new JwtStrategy(opts, (payload, next) => {
     User.where({id: payload.id}).fetch().then(user => {
-      if(!user) {
-        return cb(null, false);
-      }
-      return cb(null, user);
-      }).catch(err => {
-        return cb(err)
+      next(null, user);
       })
     })
   );

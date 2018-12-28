@@ -15,7 +15,7 @@ function createProduct(req, res, next) {
     subcategory_id: req.body.subcategory_id
   });
   product.save().then(() => {
-    return Product.forge({id: product.id}).fetch({withRelated: ['subcategory_id']}).then((product) => {
+    return Product.forge({id: product.id}).fetch({withRelated: ['subcategory']}).then((product) => {
       let files = [];
       for(let file of req.files) {
         files.push({image: file.filename, product_id: product.attributes.id})
@@ -40,6 +40,8 @@ function getProducts(req, res, next) {
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
   let subcategory_slug = req.query.subcategory;
+  let order_name = req.query.order_name || 'id';
+  let order = req.query.order || 'desc';
   if(subcategory_slug) {
     Subcategory.where({slug: subcategory_slug}).fetch().then((subcategory) => {
       if (!subcategory) {
@@ -50,7 +52,7 @@ function getProducts(req, res, next) {
       }).fetchAll().then((count)=> {
         return Product.where({subcategory_id: subcategory.id}).query(function(qb) {
           qb.offset(skip).limit(limit).orderBy('id','desc');
-        }).fetchAll({withRelated: ['subcategory_id']}).then(products => {
+        }).fetchAll({withRelated: ['subcategory']}).then(products => {
           return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
             handleImagesTable.addImagesToResult(images, products, 'id', 'attributes');
             return res.status(200).send({'products': products, 'totalAmount': count});
@@ -65,8 +67,8 @@ function getProducts(req, res, next) {
       qb.count('id');
     }).fetchAll().then((count)=> {
       return Product.forge().query(function(qb) {
-        qb.offset(skip).limit(limit).orderBy('id','desc');
-      }).fetchAll({withRelated: ['subcategory_id']}).then(products => {
+        qb.offset(skip).limit(limit);
+      }).orderBy(order_name, order).fetchAll({withRelated: ['subcategory.category']}).then(products => {
         return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
           handleImagesTable.addImagesToResult(images, products, 'id', 'attributes');
           return res.status(200).send({'products': products, 'totalAmount': count});
@@ -100,7 +102,7 @@ function getProductsBySearch(req, res, next) {
 }
 
 function getProduct(req, res, next) {
-  Product.forge({id: req.params.id}).fetch({withRelated: ['subcategory_id']}).then(product => {
+  Product.forge({id: req.params.id}).fetch({withRelated: ['subcategory.category']}).then(product => {
     if (!product) {
       return next();
     }

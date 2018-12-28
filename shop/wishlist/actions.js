@@ -34,7 +34,7 @@ function deleteProductFromWishlist(req, res, next) {
 }
 
 function getWishlist(req, res, next) {
-  Wishlist.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id.subcategory_id.category']}).then(items => {
+  Wishlist.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id.subcategory.category']}).then(items => {
     if (!items) {
       return next();
     }
@@ -42,8 +42,8 @@ function getWishlist(req, res, next) {
     items.map(item => {
       var wishlistObj = {};
       wishlistObj['id'] = item.attributes.id;
-      wishlistObj['subcategory'] = item.relations.product_id.relations.subcategory_id.attributes.name;
-      wishlistObj['category'] = item.relations.product_id.relations.subcategory_id.relations.category.attributes.name;
+      wishlistObj['subcategory'] = item.relations.product_id.relations.subcategory.attributes.name;
+      wishlistObj['category'] = item.relations.product_id.relations.subcategory.relations.category.attributes.name;
       wishlistObj['product_id'] = item.relations.product_id.attributes.id;
       wishlistObj['brand'] = item.relations.product_id.attributes.brand;
       wishlistObj['price'] = item.relations.product_id.attributes.price;

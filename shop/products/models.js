@@ -6,7 +6,7 @@ const {Subcategory} = require('../categories/models');
 
 const Product = db.Model.extend({
   tableName: 'products',
-  subcategory_id: function() {
+  subcategory: function() {
     return this.belongsTo(Subcategory, 'subcategory_id');
   }
 });
