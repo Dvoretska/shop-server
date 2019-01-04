@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const multipleUpload = require('../../services/multipleUpload');
 const handleImagesTable = require('../../services/handleImagesTable');
-const {Product, Image, Images} = require('./models');
+const {Product, Image, Images, Stock} = require('./models');
 const {Subcategory} = require('../categories/models');
 
 function createProduct(req, res, next) {
@@ -80,6 +80,46 @@ function getProducts(req, res, next) {
   }
 }
 
+function getAllProducts(req, res, next) {
+  let skip = req.query.skip || 0;
+  let limit = req.query.limit || 3;
+  let order_name = req.query.order_name || 'id';
+  let order = req.query.order || 'desc';
+  Product.forge().query(function(qb) {
+    qb.count('id');
+  }).fetchAll().then((count)=> {
+    return Stock.forge().query(function(qb) {
+      qb.offset(skip).limit(limit);
+    }).orderBy(order_name, order).fetchAll({withRelated: ['product.subcategory.category', 'size']}).then(products => {
+      return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+        handleImagesTable.addImagesToResult(images, products, 'product_id', 'attributes');
+        let arr =[];
+        products.map(product => {
+          var productObj = {};
+          productObj['id'] = product.attributes.id;
+          productObj['quantity'] = product.attributes.quantity;
+          productObj['size'] = product.relations.size.attributes.name;
+          productObj['images'] = product.attributes.images;
+          productObj['subcategory'] = product.relations.product.relations.subcategory.attributes.name;
+          productObj['category'] = product.relations.product.relations.subcategory.relations.category.attributes.name;
+          productObj['product_id'] = product.relations.product.attributes.id;
+          productObj['brand'] = product.relations.product.attributes.brand;
+          productObj['price'] = product.relations.product.attributes.price;
+          if (product.relations.product.attributes.discount) {
+            productObj['discount'] = product.relations.product.attributes.discount;
+          }
+          arr.push(productObj);
+        });
+        return res.status(200).send({'products': arr, 'totalAmount': count});
+      });
+    })
+  }).catch(err => {
+    return next(err);
+  })
+
+}
+
+
 function getProductsBySearch(req, res, next) {
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
@@ -120,5 +160,6 @@ module.exports = {
   createProduct,
   getProducts,
   getProduct,
-  getProductsBySearch
+  getProductsBySearch,
+  getAllProducts
 };

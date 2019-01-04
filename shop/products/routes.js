@@ -14,6 +14,9 @@ router.get('/products/search',
 router.get('/products',
     actions.getProducts);
 
+router.get('/all-products',
+    actions.getAllProducts);
+
 router.get('/product/:id',
     actions.getProduct);
 

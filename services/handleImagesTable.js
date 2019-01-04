@@ -9,10 +9,12 @@ function addImagesToResult(images, items, id, attributes) {
     groups[groupName].push(img.attributes.image);
     if(typeof items.forEach !== "undefined") {
       items.forEach((item) => {
-        if(+item[id] === +groupName) {
-          if(attributes) {
+        if(attributes) {
+          if(+item[attributes][id] === +groupName) {
             item[attributes]['images'] = groups[groupName];
-          } else {
+          }
+        } else {
+          if(+item[id] === +groupName) {
             item['images'] = groups[groupName];
           }
         }
