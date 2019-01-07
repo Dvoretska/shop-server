@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const models = require('./models');
 const multipleUpload = require('../services/multipleUpload');
+const deleteImage = require('../services/deleteImage');
 const bcrypt = require('bcrypt');
 const fs = require('fs');
 const validation = require('../services/validation');
@@ -74,30 +75,58 @@ function createUser(req, res) {
   })
 }
 
-function profile(req, res) {
+function profile(req, res, next) {
   const userEmail = req.user.attributes.email;
-  if (req.files  && req.files.length) {
-    var filename = req.files[0].filename;
-    models.User.where({email: userEmail}).fetch().then(function (model) {
-        multipleUpload(req, res, (err) => {
+  var password = req.body.password;
+  if (req.files && req.files.length) {
+    var filename = req.files[0].location;
+    models.User.where({email: userEmail}).fetch().then((user) => {
+      multipleUpload(req, res, (err) => {
         if (err) {
-          return res.send({success: false});
+          return next(err);
         } else {
-          fs.unlink(`public/${model.get('image')}`, () => {});
-          models.User.where({email: userEmail})
-            .save({image: filename}, {patch: true});
+          if(user.attributes.image) {
+            let prevImage = user.attributes.image.split('/').slice(-1)[0];
+            deleteImage(prevImage, function(err) {
+              if (err) {
+                return next(err);
+              } else {
+                models.User.where({email: userEmail}).save({image: filename}, {patch: true}).then(() =>{
+                  if(password) {
+                    return;
+                  } else {
+                    res.status(200).send({image: filename});
+                  }
+                });
+              }
+            });
+          } else {
+            models.User.where({email: userEmail}).save({image: filename}, {patch: true}).then(() =>{
+              if(password) {
+                return;
+              } else {
+                res.status(200).send({image: filename});
+              }
+            });
+          }
         }
       })
+    }).catch(err => {
+      return next(err);
     })
   }
   if (req.body.password) {
     bcrypt.hash(req.body.password, 10, function (err, hash) {
-      models.User.where({email: userEmail})
-        .save({password_digest: hash}, {patch: true});
+      if(err) {
+        return next(err);
+      }
+      models.User.where({email: userEmail}).save({password_digest: hash}, {patch: true}).then(() =>{
+          res.status(200).send({});
+        }).catch(err => {
+          return next(err);
+        });
     });
   }
-  const imageResponse = req.files ? {image: filename} : {};
-  return res.status(200).send(imageResponse);
 }
 
 function getUsersList(req, res) {
@@ -115,14 +144,14 @@ function update(req, res) {
   const userEmail = req.body.email;
   let filename = null;
   if (req.files  && req.files.length) {
-      filename = req.files[0].filename;
+      filename = req.files[0].location;
       multipleUpload(req, res, (err) => {
       if (err) {
         return res.send({success: false});
       } else {
-        models.User.forge({email: userEmail}).fetch().then(function (user) {
-          fs.unlink(`public/${user.get('image')}`, () => {});
-        });
+        // models.User.forge({email: userEmail}).fetch().then(function (user) {
+          // fs.unlink(`public/${user.get('image')}`, () => {});
+        // });
         models.User.where({email: userEmail})
           .save({image: filename}, {patch: true});
       }

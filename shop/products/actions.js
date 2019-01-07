@@ -16,9 +16,9 @@ function createProduct(req, res, next) {
   });
   product.save().then(() => {
     return Product.forge({id: product.id}).fetch({withRelated: ['subcategory']}).then((product) => {
-      let files = [];
-      for(let file of req.files) {
-        files.push({image: file.filename, product_id: product.attributes.id})
+      var files = [];
+      for (let file of req.files) {
+        files.push({image: file.location, product_id: product.attributes.id});
       }
       multipleUpload(req, res, (err) => {
         if (err) {
@@ -27,7 +27,7 @@ function createProduct(req, res, next) {
           let images = Images.forge(files);
           images.invokeThen('save').then((images) => {
             return res.status(201).send({product, images})
-          })
+          });
         }
       })
     })
@@ -116,7 +116,6 @@ function getAllProducts(req, res, next) {
   }).catch(err => {
     return next(err);
   })
-
 }
 
 

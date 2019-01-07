@@ -1,11 +1,12 @@
 const actions = require('./actions');
 const auth = require('../../services/auth');
-
+const validation = require('../../services/validation');
 
 const router = require('express').Router();
 
 router.post('/product',
     auth.isAuthenticated,
+    validation.isImageValid,
     actions.createProduct);
 
 router.get('/products/search',

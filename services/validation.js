@@ -2,7 +2,7 @@ const accounts = require('../accounts/models');
 const blog = require('../blog/models');
 const {Order} = require('../shop/order/models');
 
-const passwordError = 'Password length should me more than 6 characters';
+const passwordError = 'Password length should be more than 6 characters';
 const accessDenied = 'You have no rights for this action.';
 
 function isUser(role) {
@@ -100,7 +100,7 @@ function isPasswordValid(req, res, next) {
 
 function isPasswordValidOrEmpty(req, res, next) {
   if(req.body.password && req.body.password.length < 7) {
-    return res.status(400).send({password: passwordError});
+    return res.status(400).send({message: passwordError});
   } else {
     next();
   }
@@ -108,7 +108,7 @@ function isPasswordValidOrEmpty(req, res, next) {
 
 function isImageValid(req, res, next) {
   if(req.fileValidationError) {
-    return res.status(400).send({image: req.fileValidationError});
+    return res.status(400).send({message: req.fileValidationError});
   } else {
     next();
   }
