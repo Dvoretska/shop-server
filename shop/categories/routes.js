@@ -11,7 +11,7 @@ router.get('/categories-tree',
 router.delete('/subcategories/delete',
     actions.deleteSubcategories);
 
-router.get('/subcategories/:category_id',
+router.get('/subcategories',
     actions.getSubcategories);
 
 router.post('/category/add',

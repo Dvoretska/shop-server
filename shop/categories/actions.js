@@ -1,4 +1,5 @@
 const {Category, Subcategory} = require('./models');
+const {Product} = require('../products/models');
 const knex = require('../../knex');
 const slugify = require('slugify');
 
@@ -17,12 +18,27 @@ function getCategories(req, res, next) {
 }
 
 function getSubcategories(req, res, next) {
-  Subcategory.where({category_id: req.params.category_id}).fetchAll({withRelated: ['category']}).then(subcategories => {
-    if(!subcategories) {
-      return next();
-    }
-    return res.status(200).send(subcategories);
-  })
+  if(req.query.category_id) {
+    Subcategory.where({category_id: req.query.category_id}).fetchAll({withRelated: ['category']}).then(subcategories => {
+      if(!subcategories) {
+        return next();
+      }
+      return res.status(200).send(subcategories);
+    })
+  } else {
+    Product.where({id: req.query.product_id}).fetchAll({withRelated: ['subcategory.category']}).then(products => {
+      if(!products) {
+        return next();
+      }
+      let category_id;
+      products.map((product) => {
+        category_id = product.relations.subcategory.relations.category.attributes.id;
+      });
+      Subcategory.where({category_id: category_id}).fetchAll().then(subcategories => {
+        return res.status(200).send(subcategories);
+      });
+    })
+  }
 }
 
 function deleteSubcategories(req, res, next) {

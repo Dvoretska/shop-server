@@ -25,12 +25,45 @@ function createProduct(req, res, next) {
           return res.send({err});
         } else {
           let images = Images.forge(files);
-          images.invokeThen('save').then((images) => {
-            return res.status(201).send({product, images})
+          images.invokeThen('save').then(() => {
+            return res.status(201).send({product_id: product.attributes.id})
           });
         }
       })
     })
+  }).catch(err => {
+    return next(err);
+  })
+}
+
+function updateProduct(req, res, next) {
+  const data = {
+    brand: req.body.brand,
+    price: JSON.parse(req.body.price),
+    material: req.body.material,
+    discount: JSON.parse(req.body.discount),
+    description: req.body.description,
+    subcategory_id: req.body.subcategory_id
+  };
+  let product_id =  req.body.product_id;
+  if(req.files.length) {
+    var files = [];
+    for (let file of req.files) {
+      files.push({image: file.location, product_id: product_id});
+    }
+    multipleUpload(req, res, (err) => {
+      if (err) {
+        return res.send({err});
+      }
+      let images = Images.forge(files);
+      images.invokeThen('save').then(() => {
+        return;
+      })
+    })
+  }
+
+  Product.where({id: product_id}).save(data, {patch: true}).then((product) => {
+    return res.status(200).send({product});
   }).catch(err => {
     return next(err);
   })
@@ -160,5 +193,6 @@ module.exports = {
   getProducts,
   getProduct,
   getProductsBySearch,
-  getAllProducts
+  getAllProducts,
+  updateProduct
 };

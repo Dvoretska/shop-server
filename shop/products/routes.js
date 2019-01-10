@@ -9,6 +9,10 @@ router.post('/product',
     validation.isImageValid,
     actions.createProduct);
 
+router.post('/product/update',
+    auth.isAuthenticated,
+    actions.updateProduct);
+
 router.get('/products/search',
     actions.getProductsBySearch);
 
