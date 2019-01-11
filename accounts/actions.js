@@ -149,9 +149,6 @@ function update(req, res) {
       if (err) {
         return res.send({success: false});
       } else {
-        // models.User.forge({email: userEmail}).fetch().then(function (user) {
-          // fs.unlink(`public/${user.get('image')}`, () => {});
-        // });
         models.User.where({email: userEmail})
           .save({image: filename}, {patch: true});
       }
