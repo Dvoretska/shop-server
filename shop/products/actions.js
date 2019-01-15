@@ -4,6 +4,7 @@ const multipleUpload = require('../../services/multipleUpload');
 const handleImagesTable = require('../../services/handleImagesTable');
 const {Product, Image, Images, Stock} = require('./models');
 const {Subcategory} = require('../categories/models');
+const deleteImage = require('../../services/deleteImage');
 
 function createProduct(req, res, next) {
   const product = new Product({
@@ -46,6 +47,29 @@ function updateProduct(req, res, next) {
     subcategory_id: req.body.subcategory_id
   };
   let product_id =  req.body.product_id;
+  if(req.body.removedFiles) {
+    var removedFiles = [];
+    for(let removedFile of JSON.parse(req.body.removedFiles)) {
+      removedFiles.push({filename: removedFile.split('/').slice(-1)[0]});
+    }
+    deleteImage(removedFiles).then(() => {
+      Image.query(function (qb) {
+         qb.whereIn('image', JSON.parse(req.body.removedFiles))
+        }).destroy().then(() => {
+         if(req.files.length) {
+          return;
+          } else {
+          Product.where({id: product_id}).save(data, {patch: true}).then((product) => {
+            return res.status(200).send({product});
+          }).catch(err => {
+            return next(err);
+          })
+        }
+      })
+    }).catch((err)=> {
+      return next(err);
+    });
+  }
   if(req.files.length) {
     var files = [];
     for (let file of req.files) {
@@ -53,17 +77,31 @@ function updateProduct(req, res, next) {
     }
     multipleUpload(req, res, (err) => {
       if (err) {
-        return res.send({err});
+        return next(err);
       }
       let images = Images.forge(files);
       images.invokeThen('save').then(() => {
-        return;
+        Product.where({id: product_id}).save(data, {patch: true}).then((product) => {
+          return res.status(200).send({product});
+        }).catch(err => {
+          return next(err);
+        })
       })
     })
   }
 
-  Product.where({id: product_id}).save(data, {patch: true}).then((product) => {
-    return res.status(200).send({product});
+  if(!req.body.removedFiles && !req.files.length) {
+    Product.where({id: product_id}).save(data, {patch: true}).then((product) => {
+      return res.status(200).send({product});
+    }).catch(err => {
+      return next(err);
+    })
+  }
+}
+
+function deleteProduct(req, res, next) {
+  Product.where({id: req.body.product_id}).destroy().then(() => {
+    return res.status(200).send({success: 'ok'});
   }).catch(err => {
     return next(err);
   })
@@ -194,5 +232,6 @@ module.exports = {
   getProduct,
   getProductsBySearch,
   getAllProducts,
-  updateProduct
+  updateProduct,
+  deleteProduct
 };

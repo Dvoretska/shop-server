@@ -1,20 +1,20 @@
 const AWS = require('aws-sdk');
 
-const deleteImage = function(filename, callback) {
+const deleteImage = function(removedFiles) {
+  var objects = [];
+  for(var index in removedFiles){
+    objects.push({Key : removedFiles[index].filename});
+  }
   const params = {
     Bucket: process.env.BUCKET_NAME,
-    Key: filename
+    Delete: {
+      Objects: objects
+    }
   };
 
   let s3 = new AWS.S3();
 
-  s3.deleteObject(params, function(err, data) {
-    if (err) {
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
+  return s3.deleteObjects(params).promise();
 };
 
 module.exports = deleteImage;

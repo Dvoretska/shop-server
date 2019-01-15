@@ -13,6 +13,10 @@ router.post('/product/update',
     auth.isAuthenticated,
     actions.updateProduct);
 
+router.delete('/product/delete',
+    auth.isAuthenticated,
+    actions.deleteProduct);
+
 router.get('/products/search',
     actions.getProductsBySearch);
 

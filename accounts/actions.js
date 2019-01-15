@@ -87,19 +87,19 @@ function profile(req, res, next) {
         } else {
           if(user.attributes.image) {
             let prevImage = user.attributes.image.split('/').slice(-1)[0];
-            deleteImage(prevImage, function(err) {
-              if (err) {
-                return next(err);
-              } else {
-                models.User.where({email: userEmail}).save({image: filename}, {patch: true}).then(() =>{
+            let removedFiles = [];
+            removedFiles.push({filename: prevImage});
+            deleteImage(removedFiles).then(() => {
+               models.User.where({email: userEmail}).save({image: filename}, {patch: true}).then(() =>{
                   if(password) {
                     return;
                   } else {
                     res.status(200).send({image: filename});
                   }
                 });
-              }
-            });
+            }).catch((err) => {
+              return next(err);
+            })
           } else {
             models.User.where({email: userEmail}).save({image: filename}, {patch: true}).then(() =>{
               if(password) {
