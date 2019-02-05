@@ -17,7 +17,7 @@ function register(req, res) {
     password: req.body.password
   });
   user.save().then((result) => {
-    const payload = {id: result.id};
+    const payload = {id: result.id, role: 'user'};
     const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
     return res.status(201).send({user: {email: user.attributes.email,role: 'user'}, token});
   }).catch(err => {
@@ -31,7 +31,7 @@ function login(req, res) {
       return res.status(400).send(ERROR_MAPPING['login_error']);
     }
     result.authenticate(req.body.password).then(result => {
-      const payload = {id: result.id};
+      const payload = {id: result.id, role: result.relations.role_id.attributes.role};
       const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
       res.status(200).send({
         token,
