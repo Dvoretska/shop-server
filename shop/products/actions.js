@@ -5,6 +5,7 @@ const handleImagesTable = require('../../services/handleImagesTable');
 const {Product, Image, Images, Stock} = require('./models');
 const {Subcategory} = require('../categories/models');
 const deleteImage = require('../../services/deleteImage');
+const knex = require('../../knex');
 
 function createProduct(req, res, next) {
   const product = new Product({
@@ -46,8 +47,10 @@ function updateProduct(req, res, next) {
     description: req.body.description,
     subcategory_id: req.body.subcategory_id
   };
+  let removedFilesBody = JSON.parse(req.body.removedFiles);
+  let reqFilesBody = req.files;
   let product_id =  req.body.product_id;
-  if(req.body.removedFiles) {
+  if(removedFilesBody.length) {
     var removedFiles = [];
     for(let removedFile of JSON.parse(req.body.removedFiles)) {
       removedFiles.push({filename: removedFile.split('/').slice(-1)[0]});
@@ -70,9 +73,9 @@ function updateProduct(req, res, next) {
       return next(err);
     });
   }
-  if(req.files.length) {
+  if(reqFilesBody.length) {
     var files = [];
-    for (let file of req.files) {
+    for (let file of reqFilesBody) {
       files.push({image: file.location, product_id: product_id});
     }
     multipleUpload(req, res, (err) => {
@@ -90,7 +93,7 @@ function updateProduct(req, res, next) {
     })
   }
 
-  if(!req.body.removedFiles && !req.files.length) {
+  if(!removedFilesBody.length && !reqFilesBody.length) {
     Product.where({id: product_id}).save(data, {patch: true}).then((product) => {
       return res.status(200).send({product});
     }).catch(err => {
@@ -151,44 +154,28 @@ function getProducts(req, res, next) {
   }
 }
 
-function getAllProducts(req, res, next) {
-  let skip = req.query.skip || 0;
-  let limit = req.query.limit || 3;
-  let order_name = req.query.order_name || 'id';
-  let order = req.query.order || 'desc';
-  Product.forge().query(function(qb) {
-    qb.count('id');
-  }).fetchAll().then((count)=> {
-    return Stock.forge().query(function(qb) {
-      qb.offset(skip).limit(limit);
-    }).orderBy(order_name, order).fetchAll({withRelated: ['product.subcategory.category', 'size']}).then(products => {
-      return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
-        handleImagesTable.addImagesToResult(images, products, 'product_id', 'attributes');
-        let arr =[];
-        products.map(product => {
-          var productObj = {};
-          productObj['id'] = product.attributes.id;
-          productObj['quantity'] = product.attributes.quantity;
-          productObj['size'] = product.relations.size.attributes.name;
-          productObj['images'] = product.attributes.images;
-          productObj['subcategory'] = product.relations.product.relations.subcategory.attributes.name;
-          productObj['category'] = product.relations.product.relations.subcategory.relations.category.attributes.name;
-          productObj['product_id'] = product.relations.product.attributes.id;
-          productObj['brand'] = product.relations.product.attributes.brand;
-          productObj['price'] = product.relations.product.attributes.price;
-          if (product.relations.product.attributes.discount) {
-            productObj['discount'] = product.relations.product.attributes.discount;
-          }
-          arr.push(productObj);
-        });
-        return res.status(200).send({'products': arr, 'totalAmount': count});
-      });
+function getProductsFromStock(req, res, next) {
+  let offset = req.query.offset || 0;
+  let limit = req.query.limit || 10;
+  knex.raw(`SELECT SUM(s.quantity) as quantity, 
+            p.*, sub.name as subcategory_name, 
+            c.name as category_name
+            FROM stock s 
+            RIGHT OUTER JOIN products p ON s.product_id = p.id
+            JOIN subcategories sub ON p.subcategory_id = sub.id 
+            JOIN categories c ON sub.category_id = c.id
+            GROUP BY s.product_id, p.id, sub.name, c.name
+            ORDER BY p.brand LIMIT ${limit} OFFSET ${offset}`).then((result) => {
+    knex.raw(`SELECT COUNT(products.id) FROM products`).then((totalAmount) => {
+      Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+        handleImagesTable.addImagesToResult(images, result.rows, 'id');
+        return res.status(200).send({'products': result.rows, 'totalAmount': totalAmount.rows[0].count});
+      })
+    }).catch(err => {
+      return next(err);
     })
-  }).catch(err => {
-    return next(err);
-  })
+  });
 }
-
 
 function getProductsBySearch(req, res, next) {
   let skip = req.query.skip || 0;
@@ -230,8 +217,8 @@ module.exports = {
   createProduct,
   getProducts,
   getProduct,
+  getProductsFromStock,
   getProductsBySearch,
-  getAllProducts,
   updateProduct,
   deleteProduct
 };

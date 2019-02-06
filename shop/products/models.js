@@ -23,7 +23,7 @@ const Image = db.Model.extend({
 });
 
 const Stock = db.Model.extend({
-  tableName: 'stocks',
+  tableName: 'stock',
   product: function() {
     return this.belongsTo(Product, 'product_id');
   },
