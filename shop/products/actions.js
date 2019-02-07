@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const multipleUpload = require('../../services/multipleUpload');
 const handleImagesTable = require('../../services/handleImagesTable');
-const {Product, Image, Images, Stock} = require('./models');
+const {Product, Image, Images, Stock, Size} = require('./models');
 const {Subcategory} = require('../categories/models');
 const deleteImage = require('../../services/deleteImage');
 const knex = require('../../knex');
@@ -154,6 +154,39 @@ function getProducts(req, res, next) {
   }
 }
 
+function getSizesQuantity(req, res, next) {
+  knex.raw(`SELECT array_to_json(array_agg(json_build_object('size', sizes.name, 'size_id', sizes.id, 'quantity', s.quantity))) total
+            FROM stock s 
+            JOIN products p ON p.id = s.product_id 
+            JOIN sizes ON sizes.id = s.size_id 
+            GROUP BY s.product_id HAVING s.product_id = ${req.params.id}`).then((result) => {
+    if (!result.rows.length) {
+      return res.status(200).send({result: []});
+    } else {
+      return res.status(200).send({result: result.rows[0].total});
+    }
+  }).catch(err => {
+    return next(err);
+  })
+}
+
+function updateSizesQuantity(req, res, next) {
+  let dataArr = JSON.parse(req.body.dataArr);
+  let promises = [];
+  for (let row of dataArr) {
+    let promise = Stock.where({
+      product_id: req.body.product_id,
+      size_id: row.size_id
+    }).save({quantity: row.quantity}, {patch: true});
+    promises.push(promise)
+  }
+  Promise.all(promises).then(() => {
+    return res.status(200).send({success: 'ok'});
+  }).catch(err => {
+    return next(err);
+  });
+}
+
 function getProductsFromStock(req, res, next) {
   let offset = req.query.offset || 0;
   let limit = req.query.limit || 10;
@@ -177,6 +210,7 @@ function getProductsFromStock(req, res, next) {
   });
 }
 
+
 function getProductsBySearch(req, res, next) {
   let skip = req.query.skip || 0;
   let limit = req.query.limit || 3;
@@ -198,6 +232,7 @@ function getProductsBySearch(req, res, next) {
   })
 }
 
+
 function getProduct(req, res, next) {
   Product.forge({id: req.params.id}).fetch({withRelated: ['subcategory.category']}).then(product => {
     if (!product) {
@@ -212,6 +247,35 @@ function getProduct(req, res, next) {
   })
 }
 
+function getSizes(req, res, next) {
+  Size.forge().fetchAll().then(sizes => {
+    if (!sizes) {
+      return next();
+    }
+    return res.status(200).send(sizes);
+  }).catch(err => {
+    return next(err);
+  })
+}
+
+function addQuantityToStock(req, res, next) {
+  const stock = new Stock({
+    size_id: req.body.size_id,
+    product_id: req.body.product_id,
+    quantity: req.body.quantity
+  });
+  Stock.where({product_id: req.body.product_id, size_id: req.body.size_id}).fetch().then((stockItem) => {
+    if(stockItem) {
+      return next({message: 'The specified item already exists'})
+    } else {
+       stock.save().then(() => {
+        return res.status(201).send({success: 'ok'})
+      }).catch(err => {
+        return next(err);
+      })
+    }
+  })
+}
 
 module.exports = {
   createProduct,
@@ -220,5 +284,9 @@ module.exports = {
   getProductsFromStock,
   getProductsBySearch,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getSizesQuantity,
+  updateSizesQuantity,
+  getSizes,
+  addQuantityToStock
 };

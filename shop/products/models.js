@@ -37,4 +37,4 @@ const Images = db.Collection.extend({
 });
 
 
-module.exports = {Product, Image, Images, Stock};
+module.exports = {Product, Image, Images, Stock, Size};

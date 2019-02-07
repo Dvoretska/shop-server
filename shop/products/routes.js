@@ -23,14 +23,33 @@ router.delete('/product/delete',
 router.get('/products/search',
     actions.getProductsBySearch);
 
+router.get('/product/quantity/:id',
+    auth.isAuthenticated,
+    validation.allowedRoles(['admin']),
+    actions.getSizesQuantity);
+
 router.get('/products',
     actions.getProducts);
 
 router.get('/stock-products',
+    auth.isAuthenticated,
+    validation.allowedRoles(['admin']),
     actions.getProductsFromStock);
+
+router.post('/product/quantity/update',
+    auth.isAuthenticated,
+    validation.allowedRoles(['admin']),
+    actions.updateSizesQuantity);
 
 router.get('/product/:id',
     actions.getProduct);
 
+router.get('/sizes',
+    actions.getSizes);
+
+router.post('/stock/add',
+    auth.isAuthenticated,
+    validation.allowedRoles(['admin']),
+    actions.addQuantityToStock);
 
 module.exports = router;
