@@ -47,9 +47,19 @@ router.get('/product/:id',
 router.get('/sizes',
     actions.getSizes);
 
+router.post('/sizes/add',
+    auth.isAuthenticated,
+    validation.allowedRoles(['admin']),
+    actions.addSize);
+
 router.post('/stock/add',
     auth.isAuthenticated,
     validation.allowedRoles(['admin']),
     actions.addQuantityToStock);
+
+router.delete('/sizes/delete',
+    auth.isAuthenticated,
+    validation.allowedRoles(['admin']),
+    actions.deleteSizes);
 
 module.exports = router;

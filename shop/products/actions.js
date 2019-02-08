@@ -277,6 +277,36 @@ function addQuantityToStock(req, res, next) {
   })
 }
 
+function deleteSizes(req, res, next) {
+  let sizes = req.body.sizes.split(',');
+  let arr = [];
+  for(let i = 0; i < sizes.length; i++) {
+    arr.push(+sizes[i]);
+  }
+  Size.query(qb => { qb.whereIn('id', arr) }).destroy().then(()=>{
+    return res.status(204).send({success: 'ok'})
+  }).catch(err => {
+    return next(err);
+  })
+}
+
+function addSize(req, res, next) {
+  const size = new Size({
+    name: req.body.size
+  });
+  Size.where({name: req.body.size}).fetch().then((item) => {
+    if(item) {
+      return next({message: 'The specified item already exists'})
+    } else {
+       size.save().then(() => {
+        return res.status(201).send({success: 'ok'})
+      }).catch(err => {
+        return next(err);
+      })
+    }
+  })
+}
+
 module.exports = {
   createProduct,
   getProducts,
@@ -288,5 +318,7 @@ module.exports = {
   getSizesQuantity,
   updateSizesQuantity,
   getSizes,
-  addQuantityToStock
+  addQuantityToStock,
+  deleteSizes,
+  addSize
 };
