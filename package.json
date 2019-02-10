@@ -46,7 +46,8 @@
   },
   "scripts": {
     "test": "mocha test/*.js --exit ",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "prod": "set NODE_ENV=production && nodemon index.js"
   },
   "author": "",
   "license": "ISC"
