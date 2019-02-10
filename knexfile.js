@@ -11,7 +11,7 @@ module.exports = {
   },
   production: {
     client: 'pg',
-    connection: 'postgres://localhost/project_db'
+    connection: process.env.DB_URL
   }
 };
 
