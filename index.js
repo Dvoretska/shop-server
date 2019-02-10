@@ -21,10 +21,17 @@ require('./auth.js')(passport);
 
 app.use(passport.initialize());
 
-const corsOptions = {
-  origin: 'http://localhost:4200',
+var whitelist = ['http://localhost:4200', 'https://shoping-server.herokuapp.com']
+var corsOptions = {
+  origin: function (origin, callback) {
+    if (whitelist.indexOf(origin) !== -1) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
   credentials: true
-};
+}
 
 // const store = new KnexSessionStore({
 //   knex: knex,
