@@ -59,7 +59,7 @@ function updateProduct(req, res, next) {
       Image.query(function (qb) {
          qb.whereIn('image', JSON.parse(req.body.removedFiles))
         }).destroy().then(() => {
-         if(req.files.length) {
+         if(reqFilesBody.length) {
           return;
           } else {
           Product.where({id: product_id}).save(data, {patch: true}).then((product) => {
