@@ -21,7 +21,7 @@ require('./auth.js')(passport);
 
 app.use(passport.initialize());
 
-var whitelist = ['http://localhost:4200', 'https://shoping-app.herokuapp.com']
+var whitelist = ['http://localhost:4200', 'https://tao-dress.herokuapp.com']
 var corsOptions = {
   origin: function (origin, callback) {
     if (whitelist.indexOf(origin) !== -1) {
