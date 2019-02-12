@@ -11,11 +11,7 @@ const accounts = require('./accounts/models');
 const multipleUpload = require('./services/multipleUpload');
 const cookieParser = require('cookie-parser');
 const knex = require('./knex.js');
-const session = require('express-session');
-const KnexSessionStore = require('connect-session-knex')(session);
 const auth = require('./auth');
-
-
 
 require('./auth.js')(passport);
 
@@ -24,26 +20,14 @@ app.use(passport.initialize());
 var whitelist = ['http://localhost:4200', 'https://tao-dress.herokuapp.com']
 var corsOptions = {
   origin: function (origin, callback) {
-    if (whitelist.indexOf(origin) !== -1) {
+    if (whitelist.indexOf(origin) !== -1  || !origin) {
       callback(null, true)
     } else {
       callback(new Error('Not allowed by CORS'))
     }
   },
   credentials: true
-}
-
-// const store = new KnexSessionStore({
-//   knex: knex,
-//   tablename: 'sessions'
-// });
-
-// app.use(session({
-//   secret: 'keyboard cat',
-//   resave: false,
-//   saveUninitialized: true,
-//   store: store
-// }));
+};
 
 app.use(cors(corsOptions));
 
@@ -66,7 +50,12 @@ app.get('/auth/google/callback',
     (req, res) => {
       const payload = {id: req.user.attributes.user_id};
       const token = jwt.sign(payload, process.env.SECRET_OR_KEY);
-      res.redirect("http://localhost:4200?token=" + token);
+      if(process.env.NODE_ENV == 'development') {
+        res.redirect(`${process.env.FRONTEND_URL_DEV}?token=${token}`);
+      }
+      if(process.env.NODE_ENV == 'production') {
+        res.redirect(`${process.env.FRONTEND_URL_PROD}?token=${token}`);
+      }
     }
 );
 

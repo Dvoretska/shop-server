@@ -17,11 +17,24 @@ module.exports = function(passport) {
     })
   );
 
-  passport.use(new GoogleStrategy({
+  let opt = {};
+
+  if(process.env.NODE_ENV == 'development') {
+    opt = {
+      clientID: process.env.GOOGLE_CLIENT_ID_DEV,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET_DEV,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL_DEV
+    }
+  }
+  if(process.env.NODE_ENV == 'production') {
+    opt = {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: process.env.GOOGLE_CALLBACK_URL
-    },
+    }
+  }
+
+  passport.use(new GoogleStrategy(opt,
     (token, refreshToken, profile, next) => {
       Oauth.where({profile_id: profile.id}).fetch().then((oauthUser) => {
         if (oauthUser) {
