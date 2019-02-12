@@ -40,7 +40,7 @@ module.exports = function(passport) {
         if (oauthUser) {
           return next(null, oauthUser);
         }
-        User.where({email: profile.emails[0].value}).fetch().then((user) => {
+        return User.where({email: profile.emails[0].value}).fetch().then((user) => {
           if(user) {
             const oauthUser = new Oauth({
               profile_id: profile.id,
