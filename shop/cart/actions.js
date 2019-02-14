@@ -1,6 +1,5 @@
 const {Cart} = require('./models');
 const {Image, Stock} = require('../products/models');
-const {Category} = require('../categories/models');
 const handleImagesTable = require('../../services/handleImagesTable');
 const summary = require('../../services/summary');
 
@@ -19,10 +18,10 @@ async function addProductToCart(req, res, next) {
     let cart_item = await Cart.where(data).fetch({withRelated: ['product_id']});
     if(cart_item) {
       let stock = await Stock.where(dataForStock).fetch();
-      if(stock.attributes.quantity >= req.body.quantity) {
-        let stock_quantity = stock.attributes.quantity - req.body.quantity;
+      if(stock.attributes.quantity >= 1) {
+        let stock_quantity = stock.attributes.quantity - 1;
         await Stock.where(dataForStock).save({quantity: stock_quantity}, {patch: true});
-        let cart_quantity = req.body.quantity + cart_item.attributes.quantity;
+        let cart_quantity = cart_item.attributes.quantity + 1;
         let product_quantity = await Cart.where(data).save({quantity: cart_quantity}, {patch: true});
         let cart_item_updated = await Cart.where(data).fetch({withRelated: ['product_id']});
         let amount = 0;
@@ -158,7 +157,7 @@ async function deleteProductFromCart(req, res, next) {
 
 async function getTotalNumberOfProductsInCart(req, res, next) {
   try {
-    let cart = Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']});
+    let cart = await Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']});
     let totalNumberOfProducts = summary.calcTotalNumberOfProducts(cart);
     return res.status(201).send({totalNumberOfProducts});
   }
