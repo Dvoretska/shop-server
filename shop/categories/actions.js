@@ -73,7 +73,7 @@ function addCategory(req, res, next) {
     if(req.body.subcategory) {
       const subcategory = new Subcategory({
         name: req.body.subcategory,
-        slug: slugify(req.body.subcategory, {
+        slug: slugify(`${category.attributes.name}-${req.body.subcategory}`, {
           lower: true
         }),
         category_id: category.id
@@ -90,23 +90,25 @@ function addCategory(req, res, next) {
 }
 
 function saveAdditionalSubcategory(req, res, next) {
-  const subcategory = new Subcategory({
-    name: req.body.subcategory,
-    slug: slugify(req.body.subcategory, {
-      lower: true
-    }),
-    category_id: req.body.category_id
-  });
-  return subcategory.save().then((subcategory) => {
-    const transformedSubcategory = {
-      text: subcategory.attributes.name,
-      value: subcategory.attributes.id,
-      slug: subcategory.attributes.slug,
-      category_id: subcategory.attributes.category_id
-    };
-    return res.status(201).send({subcategory: transformedSubcategory})
-  }).catch(err => {
-    return next(ERROR_MAPPING[err.code] || err);
+  Category.where({id: req.body.category_id}).fetch().then((category) => {
+    const subcategory = new Subcategory({
+      name: req.body.subcategory,
+      slug: slugify(`${category.attributes.name}-${req.body.subcategory}`, {
+        lower: true
+      }),
+      category_id: req.body.category_id
+    });
+    return subcategory.save().then((subcategory) => {
+      const transformedSubcategory = {
+        text: subcategory.attributes.name,
+        value: subcategory.attributes.id,
+        slug: subcategory.attributes.slug,
+        category_id: subcategory.attributes.category_id
+      };
+      return res.status(201).send({subcategory: transformedSubcategory})
+    }).catch(err => {
+      return next(ERROR_MAPPING[err.code] || err);
+    })
   })
 }
 

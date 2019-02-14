@@ -112,7 +112,7 @@ function deleteProduct(req, res, next) {
 
 function getProducts(req, res, next) {
   let skip = req.query.skip || 0;
-  let limit = req.query.limit || 3;
+  let limit = req.query.limit || 6;
   let subcategory_slug = req.query.subcategory;
   let order_name = req.query.order_name || 'id';
   let order = req.query.order || 'desc';
@@ -200,7 +200,7 @@ function getProductsFromStock(req, res, next) {
             GROUP BY s.product_id, p.id, sub.name, c.name
             ORDER BY p.brand LIMIT ${limit} OFFSET ${offset}`).then((result) => {
     knex.raw(`SELECT COUNT(products.id) FROM products`).then((totalAmount) => {
-      Image.forge().fetchAll({withRelated: 'product'}).then(images => {
+      return Image.forge().fetchAll({withRelated: 'product'}).then(images => {
         handleImagesTable.addImagesToResult(images, result.rows, 'id');
         return res.status(200).send({'products': result.rows, 'totalAmount': totalAmount.rows[0].count});
       })
@@ -213,7 +213,7 @@ function getProductsFromStock(req, res, next) {
 
 function getProductsBySearch(req, res, next) {
   let skip = req.query.skip || 0;
-  let limit = req.query.limit || 3;
+  let limit = req.query.limit || 6;
   let searchQuery = req.query.search;
   let searchQueryLowerCase = searchQuery.toLowerCase();
   Product.query(function (qb) {
@@ -232,6 +232,26 @@ function getProductsBySearch(req, res, next) {
   })
 }
 
+function getAvailableSizes(req, res, next) {
+  Stock.where({product_id: req.params.id}).fetchAll({withRelated: ['size']}).then(items => {
+    if (!items) {
+      return next();
+    }
+    let transformedItems = [];
+     items.map((item) => {
+       var transformedItem = {};
+       if(item.attributes.quantity != 0) {
+          transformedItem['quantity'] = item.attributes.quantity;
+          transformedItem['label'] = item.relations.size.attributes.name;
+          transformedItem['value'] = item.attributes.size_id;
+         transformedItems.push(transformedItem);
+       }
+    });
+    return res.status(200).send({availableSizes: transformedItems});
+  }).catch(err => {
+    return next(err);
+  })
+}
 
 function getProduct(req, res, next) {
   Product.forge({id: req.params.id}).fetch({withRelated: ['subcategory.category']}).then(product => {
@@ -320,5 +340,6 @@ module.exports = {
   getSizes,
   addQuantityToStock,
   deleteSizes,
-  addSize
+  addSize,
+  getAvailableSizes
 };

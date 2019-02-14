@@ -44,6 +44,9 @@ router.post('/product/quantity/update',
 router.get('/product/:id',
     actions.getProduct);
 
+router.get('/sizes/available/:id',
+    actions.getAvailableSizes);
+
 router.get('/sizes',
     actions.getSizes);
 

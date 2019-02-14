@@ -4,51 +4,66 @@ const {Category} = require('../categories/models');
 const handleImagesTable = require('../../services/handleImagesTable');
 const summary = require('../../services/summary');
 
-function addProductToCart(req, res) {
 
-  Cart.forge({product_id: req.body.product_id, size: req.body.size, user_id: req.user.attributes.id})
-      .query('orderBy', 'id', 'desc')
-      .fetch({withRelated: ['product_id']})
-      .then((product) => {
-        if(product && product.attributes.size == req.body.size) {
-          let quantity = req.body.quantity + product.attributes.quantity;
-          Cart.where({product_id: req.body.product_id, size: product.attributes.size, user_id: req.user.attributes.id})
-              .save({quantity: quantity}, {patch: true})
-              .then((result) => {
-                let amount = 0;
-                if(product.relations.product_id.attributes.discount) {
-                  amount = product.relations.product_id.attributes.discount * quantity;
-                } else {
-                  amount = product.relations.product_id.attributes.price * quantity;
-                }
-                Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(total => {
-                  let totalAmount = summary.calcTotalAmount(total);
-                  let totalNumberOfProducts = summary.calcTotalNumberOfProducts(total);
-                  return res.status(201).send({product, productQty: result, amount, totalAmount, totalNumberOfProducts});
-                }).catch(err => {
-                  return res.status(400).send(err)
-                })
-              });
+async function addProductToCart(req, res, next) {
+  let data = {
+    product_id: req.body.product_id,
+    size_id: req.body.size_id,
+    user_id: req.user.attributes.id
+  };
+  let dataForStock = {
+    product_id: req.body.product_id,
+    size_id: req.body.size_id
+  };
+  try {
+    let cart_item = await Cart.where(data).fetch({withRelated: ['product_id']});
+    if(cart_item) {
+      let stock = await Stock.where(dataForStock).fetch();
+      if(stock.attributes.quantity >= req.body.quantity) {
+        let stock_quantity = stock.attributes.quantity - req.body.quantity;
+        await Stock.where(dataForStock).save({quantity: stock_quantity}, {patch: true});
+        let cart_quantity = req.body.quantity + cart_item.attributes.quantity;
+        let product_quantity = await Cart.where(data).save({quantity: cart_quantity}, {patch: true});
+        let cart_item_updated = await Cart.where(data).fetch({withRelated: ['product_id']});
+        let amount = 0;
+        if (cart_item_updated.relations.product_id.attributes.discount) {
+           amount = cart_item_updated.relations.product_id.attributes.discount * cart_item_updated.attributes.quantity;
         } else {
-          const cart = new Cart({
-            quantity: req.body.quantity || 1,
-            product_id: req.body.product_id,
-            size: req.body.size,
-            user_id: req.user.attributes.id
-          });
-          cart.save().then((product) => {
-            Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']}).then(result => {
-              let totalAmount = summary.calcTotalAmount(result);
-              let totalNumberOfProducts = summary.calcTotalNumberOfProducts(result);
-              return res.status(201).send({product, productQty: {quantity: 1}, totalAmount, totalNumberOfProducts});
-            }).catch(err => {
-              return res.status(400).send(err)
-            })
-          })
+           amount = cart_item_updated.relations.product_id.attributes.price * cart_item_updated.attributes.quantity;
         }
-      }).catch((err) => {
-    return res.status(400).send(err)
-  })
+        let all_cart = await Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']});
+        let totalAmount = summary.calcTotalAmount(all_cart);
+        let totalNumberOfProducts = summary.calcTotalNumberOfProducts(all_cart);
+        return res.status(201).send({message: '', product: cart_item_updated, productQty: product_quantity, amount, totalAmount, totalNumberOfProducts});
+      } else {
+        return res.status(200).send({message: 'This product is currently out of stock'});
+      }
+    } else {
+      const cart = new Cart({
+        quantity: 1,
+        product_id: req.body.product_id,
+        size_id: req.body.size_id,
+        user_id: req.user.attributes.id
+      });
+      let stock = await Stock.where(dataForStock).fetch();
+      if(stock.attributes.quantity >= 1) {
+        await cart.save();
+        let cart_item_updated = await Cart.where(data).fetch({withRelated: ['product_id']});
+        let stock_quantity = stock.attributes.quantity - 1;
+        await Stock.where(dataForStock).save({quantity: stock_quantity}, {patch: true});
+        let all_cart = await Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']});
+        let totalAmount = summary.calcTotalAmount(all_cart);
+        let totalNumberOfProducts = summary.calcTotalNumberOfProducts(all_cart);
+        return res.status(201).send({product: cart_item_updated, productQty: {quantity: 1}, totalAmount, totalNumberOfProducts});
+      }
+      else {
+        return res.status(200).send({message: 'This product is currently out of stock'});
+      }
+    }
+  }
+  catch(err) {
+     return next(err);
+  }
 }
 
 function getCart(req, res, next) {
