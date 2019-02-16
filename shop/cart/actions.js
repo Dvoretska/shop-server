@@ -69,7 +69,7 @@ async function addProductToCart(req, res, next) {
 
 async function getCart(req, res, next) {
   try {
-    let cart = await Cart.where({user_id: req.user.attributes.id}).query('orderBy', 'quantity', 'desc')
+    let cart = await Cart.where({user_id: req.user.attributes.id, is_ordered: false}).query('orderBy', 'quantity', 'desc')
       .fetchAll({withRelated: ['product_id.subcategory.category', 'size_id']});
     if (!cart) {
       return next();
@@ -78,6 +78,7 @@ async function getCart(req, res, next) {
     cart.map((cart_item) => {
       var cart_obj = {};
       cart_obj['category'] = cart_item.relations.product_id.relations.subcategory.relations.category.attributes.name;
+      cart_obj['subcategory'] = cart_item.relations.product_id.relations.subcategory.attributes.name;
       cart_obj['id'] = cart_item.attributes.id;
       cart_obj['size'] = cart_item.relations.size_id.attributes.name;
       cart_obj['size_id'] = cart_item.relations.size_id.attributes.id;

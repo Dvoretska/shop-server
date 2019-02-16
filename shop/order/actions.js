@@ -1,64 +1,53 @@
-const {OrderPerson, Order, Orders, OrderItems} = require('./models');
+const {Customer, Order, OrderItems, OrderItem} = require('./models');
 const {Cart} = require('../cart/models');
 const {Category} = require('../categories/models');
+const summary = require('../../services/summary');
 
-
-function createOrder(req, res) {
-  const orderPerson = new OrderPerson({
-    phone: req.body.phone,
-    post_code: req.body.post_code,
-    country: req.body.country,
-    city: req.body.city,
-    first_name: req.body.first_name,
-    surname: req.body.surname,
-    comment: req.body.comment,
-    user_id: req.user.id
-  });
-  orderPerson.save().then((person) => {
-    Cart.where({user_id: req.user.attributes.id}).fetchAll({ columns: ['quantity', 'size', 'product_id'], withRelated: ['product_id'] }).then(carts => {
-      let order_items = [];
-      carts.map(cart => {
-        let order_item = {};
-        let quantity = cart.attributes.quantity;
-        order_item['quantity'] = quantity;
-        order_item['size'] = cart.attributes.size;
-        order_item['product_id'] = cart.attributes.product_id;
-        let discount = cart.relations.product_id.attributes.discount;
-        let price = cart.relations.product_id.attributes.price;
-        let amount = 0;
-        if(discount) {
-          amount = discount * quantity;
-        } else {
-          amount = price * quantity;
-        }
-        order_item['amount'] = amount;
-        order_items.push(order_item)
-      });
-      let items = OrderItems.forge(order_items);
-      items.invokeThen('save').then((order_items) => {
-        let orderArr = [];
-        let total_amount = order_items.reduce((prev, current) => {return prev + current.attributes['amount']}, 0);
-        order_items.map((order_item) => {
-          let order = {};
-          order['created'] =  new Date();
-          order['order_person_id'] = person.attributes.id;
-          order['order_number'] = `${new Date().toISOString().slice(0,10).replace(/-/g,"")}${person.attributes.id}`;
-          order['user_id'] = req.user.id;
-          order['order_item_id'] = order_item.attributes.id;
-          order['total_amount'] = total_amount;
-          orderArr.push(order);
-        });
-        let orders = Orders.forge(orderArr);
-        orders.invokeThen('save').then((order) => {
-          Cart.where({user_id: req.user.attributes.id}).destroy().then(() => {
-            return res.status(201).send({order_number: order[0].attributes.order_number})
-          }).catch(err => {
-            return res.status(400).send(err)
-          })
-        })
-      })
-    })
-  })
+async function createOrder(req, res, next) {
+  try {
+    let cart_items = await Cart.where({user_id: req.user.id, is_ordered: false})
+      .fetchAll({ withRelated: ['product_id.subcategory.category', 'size_id'] });
+    let total_amount = summary.calcTotalAmount(cart_items);
+    const order = new Order({
+      order_number: `${new Date().toISOString().slice(0,10).replace(/-/g,"")}${req.user.id}`,
+      phone: req.body.phone,
+      post_code: req.body.postCode,
+      country: req.body.country,
+      city: req.body.city,
+      first_name: req.body.firstName,
+      surname: req.body.surname,
+      comment: req.body.comment,
+      total_amount: total_amount,
+      user_id: req.user.id
+    });
+    let saved_order = await order.save();
+    let order_items = [];
+    cart_items.map(cart_item => {
+      let order_item = {};
+      order_item['quantity'] = cart_item.attributes.quantity;
+      order_item['size'] = cart_item.relations.size_id.attributes.name;
+      order_item['category'] = cart_item.relations.product_id.relations.subcategory.relations.category.attributes.name;
+      order_item['subcategory'] = cart_item.relations.product_id.relations.subcategory.attributes.name;
+      order_item['brand'] = cart_item.relations.product_id.attributes.brand;
+      order_item['order_id'] = saved_order.attributes.id;
+      order_items.push(order_item)
+    });
+    let items = await OrderItems.forge(order_items);
+    await items.invokeThen('save');
+    let promises = [];
+    cart_items.map(() => {
+      let promise = Cart.where({
+        user_id: req.user.id
+      }).save({is_ordered: true}, {patch: true});
+      promises.push(promise)
+    });
+    Promise.all(promises).then(()=> {
+      return res.status(201).send({order_number: saved_order.attributes.order_number});
+    });
+  }
+  catch(err) {
+     return next(err);
+  }
 }
 
 function getOrder(req, res) {

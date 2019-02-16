@@ -3,23 +3,30 @@ const bookshelf = require('bookshelf');
 const db = bookshelf(knexDb);
 const { User } = require('../../accounts/models');
 
-const OrderPerson = db.Model.extend({
+const Customer = db.Model.extend({
   tableName: 'customers',
-  user_id: function() {
+  user: function() {
     return this.belongsTo(User, 'user_id');
   }
 });
 
 const Order = db.Model.extend({
   tableName: 'orders',
-  user_id: function() {
+  user: function() {
     return this.belongsTo(User, 'user_id');
   }
 });
 
-const Orders = db.Collection.extend({
-  model: Order
+const OrderItem = db.Model.extend({
+  tableName: 'order_items',
+  order: function() {
+    return this.belongsTo(Order, 'order_id');
+  }
+});
+
+const OrderItems = db.Collection.extend({
+  model: OrderItem
 });
 
 
-module.exports = {OrderPerson, Order, Orders};
+module.exports = {Customer, Order, OrderItems, OrderItem};
