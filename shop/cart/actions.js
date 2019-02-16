@@ -45,7 +45,6 @@ async function addProductToCart(req, res, next) {
           size_id: req.body.size_id,
           user_id: req.user.attributes.id
         });
-        let stock = await Stock.where(dataForStock).fetch();
         if(stock.attributes.quantity >= 1) {
           await cart.save();
           let cart_item_updated = await Cart.where(data).fetch({withRelated: ['product_id']});
@@ -55,8 +54,7 @@ async function addProductToCart(req, res, next) {
           let totalAmount = summary.calcTotalAmount(all_cart);
           let totalNumberOfProducts = summary.calcTotalNumberOfProducts(all_cart);
           return res.status(201).send({product: cart_item_updated, productQty: {quantity: 1}, totalAmount, totalNumberOfProducts});
-        }
-        else {
+        } else {
           return res.status(200).send({message: 'This size is currently out of stock'});
         }
       }
