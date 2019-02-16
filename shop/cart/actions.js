@@ -15,49 +15,53 @@ async function addProductToCart(req, res, next) {
     size_id: req.body.size_id
   };
   try {
-    let cart_item = await Cart.where(data).fetch({withRelated: ['product_id']});
-    if(cart_item) {
-      let stock = await Stock.where(dataForStock).fetch();
-      if(stock.attributes.quantity >= 1) {
-        let stock_quantity = stock.attributes.quantity - 1;
-        await Stock.where(dataForStock).save({quantity: stock_quantity}, {patch: true});
-        let cart_quantity = cart_item.attributes.quantity + 1;
-        let product_quantity = await Cart.where(data).save({quantity: cart_quantity}, {patch: true});
-        let cart_item_updated = await Cart.where(data).fetch({withRelated: ['product_id']});
-        let amount = 0;
-        if (cart_item_updated.relations.product_id.attributes.discount) {
-           amount = cart_item_updated.relations.product_id.attributes.discount * cart_item_updated.attributes.quantity;
+    let stock = await Stock.where(dataForStock).fetch();
+    if(stock) {
+      let cart_item = await Cart.where(data).fetch({withRelated: ['product_id']});
+      if(cart_item) {
+        if(stock.attributes.quantity >= 1) {
+          let stock_quantity = stock.attributes.quantity - 1;
+          await Stock.where(dataForStock).save({quantity: stock_quantity}, {patch: true});
+          let cart_quantity = cart_item.attributes.quantity + 1;
+          let product_quantity = await Cart.where(data).save({quantity: cart_quantity}, {patch: true});
+          let cart_item_updated = await Cart.where(data).fetch({withRelated: ['product_id']});
+          let amount = 0;
+          if (cart_item_updated.relations.product_id.attributes.discount) {
+             amount = cart_item_updated.relations.product_id.attributes.discount * cart_item_updated.attributes.quantity;
+          } else {
+             amount = cart_item_updated.relations.product_id.attributes.price * cart_item_updated.attributes.quantity;
+          }
+          let all_cart = await Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']});
+          let totalAmount = summary.calcTotalAmount(all_cart);
+          let totalNumberOfProducts = summary.calcTotalNumberOfProducts(all_cart);
+          return res.status(201).send({message: '', product: cart_item_updated, productQty: product_quantity, amount, totalAmount, totalNumberOfProducts});
         } else {
-           amount = cart_item_updated.relations.product_id.attributes.price * cart_item_updated.attributes.quantity;
+          return res.status(200).send({message: 'This size is currently out of stock'});
         }
-        let all_cart = await Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']});
-        let totalAmount = summary.calcTotalAmount(all_cart);
-        let totalNumberOfProducts = summary.calcTotalNumberOfProducts(all_cart);
-        return res.status(201).send({message: '', product: cart_item_updated, productQty: product_quantity, amount, totalAmount, totalNumberOfProducts});
       } else {
-        return res.status(200).send({message: 'This product is currently out of stock'});
+        const cart = new Cart({
+          quantity: 1,
+          product_id: req.body.product_id,
+          size_id: req.body.size_id,
+          user_id: req.user.attributes.id
+        });
+        let stock = await Stock.where(dataForStock).fetch();
+        if(stock.attributes.quantity >= 1) {
+          await cart.save();
+          let cart_item_updated = await Cart.where(data).fetch({withRelated: ['product_id']});
+          let stock_quantity = stock.attributes.quantity - 1;
+          await Stock.where(dataForStock).save({quantity: stock_quantity}, {patch: true});
+          let all_cart = await Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']});
+          let totalAmount = summary.calcTotalAmount(all_cart);
+          let totalNumberOfProducts = summary.calcTotalNumberOfProducts(all_cart);
+          return res.status(201).send({product: cart_item_updated, productQty: {quantity: 1}, totalAmount, totalNumberOfProducts});
+        }
+        else {
+          return res.status(200).send({message: 'This size is currently out of stock'});
+        }
       }
     } else {
-      const cart = new Cart({
-        quantity: 1,
-        product_id: req.body.product_id,
-        size_id: req.body.size_id,
-        user_id: req.user.attributes.id
-      });
-      let stock = await Stock.where(dataForStock).fetch();
-      if(stock.attributes.quantity >= 1) {
-        await cart.save();
-        let cart_item_updated = await Cart.where(data).fetch({withRelated: ['product_id']});
-        let stock_quantity = stock.attributes.quantity - 1;
-        await Stock.where(dataForStock).save({quantity: stock_quantity}, {patch: true});
-        let all_cart = await Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']});
-        let totalAmount = summary.calcTotalAmount(all_cart);
-        let totalNumberOfProducts = summary.calcTotalNumberOfProducts(all_cart);
-        return res.status(201).send({product: cart_item_updated, productQty: {quantity: 1}, totalAmount, totalNumberOfProducts});
-      }
-      else {
-        return res.status(200).send({message: 'This product is currently out of stock'});
-      }
+      return res.status(200).send({message: 'Sorry, this size is no longer available'});
     }
   }
   catch(err) {
@@ -143,8 +147,15 @@ async function decreaseQuantityOfProductInCart(req, res, next) {
 }
 
 async function deleteProductFromCart(req, res, next) {
+  let dataForStock = {
+    product_id: req.body.product_id,
+    size_id: req.body.size_id
+  };
   try {
      await Cart.where({id: req.body.id, user_id: req.user.attributes.id}).destroy();
+     let stock = await Stock.where(dataForStock).fetch();
+     let stock_quantity = stock.attributes.quantity + req.body.quantity;
+     await Stock.where(dataForStock).save({quantity: stock_quantity}, {patch: true});
      let cart = await Cart.where({user_id: req.user.attributes.id}).fetchAll({withRelated: ['product_id']});
      let totalAmount = summary.calcTotalAmount(cart);
      let totalNumberOfProducts = summary.calcTotalNumberOfProducts(cart);
