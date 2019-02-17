@@ -1,7 +1,8 @@
-const {Customer, Order, OrderItems, OrderItem} = require('./models');
+const {Order, OrderItems, OrderItem} = require('./models');
 const {Cart} = require('../cart/models');
 const {Category} = require('../categories/models');
 const summary = require('../../services/summary');
+const knex = require('../../knex');
 
 async function createOrder(req, res, next) {
   try {
@@ -9,7 +10,7 @@ async function createOrder(req, res, next) {
       .fetchAll({ withRelated: ['product_id.subcategory.category', 'size_id'] });
     let total_amount = summary.calcTotalAmount(cart_items);
     const order = new Order({
-      order_number: `${new Date().toISOString().slice(0,10).replace(/-/g,"")}${req.user.id}`,
+      order_number: `${new Date().getTime()}${req.user.id}`,
       phone: req.body.phone,
       post_code: req.body.postCode,
       country: req.body.country,
@@ -24,58 +25,47 @@ async function createOrder(req, res, next) {
     let order_items = [];
     cart_items.map(cart_item => {
       let order_item = {};
-      order_item['quantity'] = cart_item.attributes.quantity;
+      let quantity = cart_item.attributes.quantity;
+      order_item['quantity'] = quantity;
       order_item['size'] = cart_item.relations.size_id.attributes.name;
       order_item['category'] = cart_item.relations.product_id.relations.subcategory.relations.category.attributes.name;
       order_item['subcategory'] = cart_item.relations.product_id.relations.subcategory.attributes.name;
       order_item['brand'] = cart_item.relations.product_id.attributes.brand;
       order_item['order_id'] = saved_order.attributes.id;
-      order_items.push(order_item)
+      let discount = cart_item.relations.product_id.attributes.discount;
+      let price = cart_item.relations.product_id.attributes.price;
+      let amount = 0;
+      if(discount) {
+        amount = discount * quantity;
+      } else {
+        amount = price * quantity;
+      }
+      order_item['amount'] = amount;
+      order_items.push(order_item);
     });
     let items = await OrderItems.forge(order_items);
     await items.invokeThen('save');
-    let promises = [];
-    cart_items.map(() => {
-      let promise = Cart.where({
-        user_id: req.user.id
-      }).save({is_ordered: true}, {patch: true});
-      promises.push(promise)
-    });
-    Promise.all(promises).then(()=> {
-      return res.status(201).send({order_number: saved_order.attributes.order_number});
-    });
+    await Cart.where({user_id: req.user.attributes.id}).destroy();
+    return res.status(201).send({order_number: saved_order.attributes.order_number});
   }
   catch(err) {
      return next(err);
   }
 }
 
-function getOrder(req, res) {
-  Order.where({order_number: req.params.id}).fetchAll({withRelated: ['order_item_id.product_id', 'order_person_id', 'user_id']}).then(orders => {
-      Category.forge().fetchAll().then(categories => {
-        let ordersArr = [];
-        let info = {};
-        let person = {};
-        orders.map(order => {
-          person['data'] = order.relations.order_person_id.attributes;
-          person['email'] = order.relations.user_id.attributes.email;
-          info['created'] = order.attributes.created;
-          info['order_number'] = order.attributes.order_number;
-          info['total_amount'] = order.attributes.total_amount;
-          let category = categories.find(o => +order.relations.order_item_id.relations.product_id.attributes.category_id === +o.id);
-          let updatedOrder = {
-            quantity: order.relations.order_item_id.attributes.quantity,
-            size: order.relations.order_item_id.attributes.size,
-            category: category.attributes.name,
-            brand: order.relations.order_item_id.relations.product_id.attributes.brand,
-            amount: order.relations.order_item_id.attributes.amount};
-          ordersArr.push(updatedOrder)
-        });
-        return res.status(201).send({order_info: info, order: ordersArr, order_person: person})
-      }).catch(err => {
-        return res.status(400).send(err)
-      })
-  })
+async function getOrder(req, res, next) {
+  try {
+    let order = await knex.raw(`SELECT array_to_json(array_agg(json_build_object('brand', i.brand, 'category', i.category, 
+    'subcategory', i.subcategory, 'quantity', i.quantity, 'size', i.size, 'amount', i.amount))) as products, o.*
+    FROM orders o 
+    JOIN order_items i ON o.id = i.order_id
+    WHERE o.order_number = '${req.params.id}' AND o.user_id = ${req.user.id}
+    GROUP BY o.id`);
+    return res.status(201).send({order: order.rows[0]});
+  }
+  catch(err) {
+     return next(err);
+  }
 }
 
 function getOrders(req, res) {

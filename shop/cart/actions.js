@@ -69,7 +69,7 @@ async function addProductToCart(req, res, next) {
 
 async function getCart(req, res, next) {
   try {
-    let cart = await Cart.where({user_id: req.user.attributes.id, is_ordered: false}).query('orderBy', 'quantity', 'desc')
+    let cart = await Cart.where({user_id: req.user.attributes.id}).query('orderBy', 'quantity', 'desc')
       .fetchAll({withRelated: ['product_id.subcategory.category', 'size_id']});
     if (!cart) {
       return next();

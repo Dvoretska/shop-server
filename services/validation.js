@@ -116,7 +116,7 @@ function isImageValid(req, res, next) {
 
 function isAllowedToCurrentUserOnly() {
   return function(req, res, next) {
-    Order.forge({order_number: req.params.id}).fetch({withRelated: ['order_person_id']}).then(orders => {
+    Order.forge({order_number: req.params.id}).fetch().then(orders => {
       if(+orders.attributes.user_id === +req.user.id) {
         next();
       } else {
