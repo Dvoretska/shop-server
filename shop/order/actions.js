@@ -5,7 +5,7 @@ const knex = require('../../knex');
 
 async function createOrder(req, res, next) {
   try {
-    let cart_items = await Cart.where({user_id: req.user.id, is_ordered: false})
+    let cart_items = await Cart.where({user_id: req.user.id})
       .fetchAll({ withRelated: ['product_id.subcategory.category', 'size_id'] });
     let total_amount = summary.calcTotalAmount(cart_items);
     const order = new Order({
