@@ -1,6 +1,5 @@
 const {Order, OrderItems, OrderItem} = require('./models');
 const {Cart} = require('../cart/models');
-const {Category} = require('../categories/models');
 const summary = require('../../services/summary');
 const knex = require('../../knex');
 
@@ -68,19 +67,14 @@ async function getOrder(req, res, next) {
   }
 }
 
-function getOrders(req, res) {
-  Order.where({user_id: req.user.id}).query('orderBy', 'created', 'desc').fetchAll({columns: ['total_amount', 'order_number', 'created', 'user_id']}).then(orders => {
-    let ordersArr = [];
-    orders.map((order) => {
-      let found = ordersArr.some((el) => {
-        return +el.attributes.order_number === +order.attributes.order_number;
-      });
-      if (!found) { ordersArr.push(order); }
-    });
-    return res.status(201).send({orders: ordersArr})
-  }).catch(err => {
-    return res.status(400).send(err)
-  })
+async function getOrders(req, res, next) {
+  try {
+    let orders = await Order.where({user_id: req.user.id}).query('orderBy', 'created', 'desc').fetchAll({columns: ['total_amount', 'order_number', 'created', 'user_id']});
+    return res.status(200).send({orders})
+  }
+  catch(err) {
+     return next(err);
+  }
 }
 
 
