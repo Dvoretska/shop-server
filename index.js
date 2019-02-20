@@ -18,6 +18,8 @@ require('./auth.js')(passport);
 
 app.use(passport.initialize());
 
+app.use(sslRedirect(['production']));
+
 var whitelist = ['http://localhost:4200', 'https://tao-dress.herokuapp.com'];
 var corsOptions = {
   origin: function (origin, callback) {
@@ -31,8 +33,6 @@ var corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-app.use(sslRedirect(['production']));
 
 app.use(parser.urlencoded({
   extended: false
