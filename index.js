@@ -14,11 +14,11 @@ const knex = require('./knex.js');
 const auth = require('./auth');
 const sslRedirect = require('heroku-ssl-redirect');
 
+app.use(sslRedirect());
+
 require('./auth.js')(passport);
 
 app.use(passport.initialize());
-
-app.use(sslRedirect(['production']));
 
 var whitelist = ['http://localhost:4200', 'https://tao-dress.herokuapp.com'];
 var corsOptions = {
