@@ -30,11 +30,11 @@ var corsOptions = {
   credentials: true
 };
 
+app.use(cors(corsOptions));
+
 if(process.env.NODE_ENV == 'production') {
   app.use(enforce.HTTPS({ trustProtoHeader: true }));
 }
-
-app.use(cors(corsOptions));
 
 app.use(parser.urlencoded({
   extended: false
@@ -77,7 +77,9 @@ app.use(function(req, res) {
 });
 
 app.use(function(err, req, res, next) {
-  console.log(err);
+  if(process.env.NODE_ENV == 'development') {
+    console.log(err);
+  }
   if(err.message) {
     res.status(400).send(err);
   } else {
