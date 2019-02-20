@@ -12,12 +12,13 @@ const multipleUpload = require('./services/multipleUpload');
 const cookieParser = require('cookie-parser');
 const knex = require('./knex.js');
 const auth = require('./auth');
+var enforce = require('express-sslify');
 
 require('./auth.js')(passport);
 
 app.use(passport.initialize());
 
-var whitelist = ['http://localhost:4200', 'https://tao-dress.herokuapp.com']
+var whitelist = ['http://localhost:4200', 'https://tao-dress.herokuapp.com'];
 var corsOptions = {
   origin: function (origin, callback) {
     if (whitelist.indexOf(origin) !== -1  || !origin) {
@@ -28,6 +29,10 @@ var corsOptions = {
   },
   credentials: true
 };
+
+if(process.env.NODE_ENV == 'production') {
+  app.use(enforce.HTTPS({ trustProtoHeader: true }));
+}
 
 app.use(cors(corsOptions));
 
