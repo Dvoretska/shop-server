@@ -12,7 +12,7 @@ const multipleUpload = require('./services/multipleUpload');
 const cookieParser = require('cookie-parser');
 const knex = require('./knex.js');
 const auth = require('./auth');
-var enforce = require('express-sslify');
+const sslRedirect = require('heroku-ssl-redirect');
 
 require('./auth.js')(passport);
 
@@ -32,9 +32,7 @@ var corsOptions = {
 
 app.use(cors(corsOptions));
 
-if(process.env.NODE_ENV == 'production') {
-  app.use(enforce.HTTPS({ trustProtoHeader: true }));
-}
+app.use(sslRedirect(['production']));
 
 app.use(parser.urlencoded({
   extended: false
