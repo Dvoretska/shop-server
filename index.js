@@ -12,9 +12,6 @@ const multipleUpload = require('./services/multipleUpload');
 const cookieParser = require('cookie-parser');
 const knex = require('./knex.js');
 const auth = require('./auth');
-const sslRedirect = require('heroku-ssl-redirect');
-
-app.use(sslRedirect());
 
 require('./auth.js')(passport);
 

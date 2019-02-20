@@ -19,7 +19,6 @@
     "express": "^4.16.3",
     "express-session": "^1.15.6",
     "firebase": "^5.5.3",
-    "heroku-ssl-redirect": "0.0.4",
     "jsonwebtoken": "^8.3.0",
     "knex": "^0.15.2",
     "knex-db-manager": "^0.4.0",
